@@ -17,6 +17,8 @@
   window.addEventListener('unhandledrejection', (e) => {
     console.error(e.reason);
     const code = (e.reason && e.reason.code) || '';
+    if (code === 'cloudinary/not-configured') { toast('O envio de fotos ainda não foi configurado (Cloudinary).', true); return; }
+    if (code === 'cloudinary/upload-failed') { toast('O Cloudinary recusou o arquivo: ' + e.reason.message, true); return; }
     toast(code.includes('permission') ? 'Sem permissão para salvar. Entre de novo como administrador.' : 'Não foi possível salvar. Confira a internet e tente de novo.', true);
   });
 
@@ -111,7 +113,7 @@
       if (!f) return;
       let src;
       try { ({ src } = await db.saveUpload(f, 900)); }
-      catch (e) { console.error(e); toast('Não foi possível enviar a foto. Confira a internet e tente de novo.', true); return; }
+      catch (e) { console.error(e); toast(e.code === 'cloudinary/not-configured' ? 'O envio de fotos ainda não foi configurado (Cloudinary).' : 'Não foi possível enviar a foto. Confira a internet e tente de novo.', true); return; }
       newOnes.push(src);
       $('#' + id).value = src;
       $('#' + id + 'Pv').innerHTML = `<img src="${await db.url(src)}" alt="">`;
@@ -717,7 +719,7 @@
         </form></div>
       <div class="card">
         <h4 style="margin:0 0 8px;font-family:var(--font-display)">Onde ficam os dados</h4>
-        <p class="hint">Tudo o que você cadastra é salvo no Firebase, na internet. Fotos, vídeos, eventos, álbuns e funcionários aparecem para qualquer pessoa que abrir o site. Turmas, alunos e mensalidades só podem ser vistos por quem entrar com o login do administrador.</p>
+        <p class="hint">Os cadastros ficam salvos no Firebase e as fotos e vídeos no Cloudinary, os dois na internet. Ao excluir uma foto aqui, ela sai do site, mas o arquivo continua no painel do Cloudinary (pasta jardim-encantado), onde você pode apagá-lo se quiser liberar espaço. Fotos, vídeos, eventos, álbuns e funcionários aparecem para qualquer pessoa que abrir o site. Turmas, alunos e mensalidades só podem ser vistos por quem entrar com o login do administrador.</p>
       </div>`;
     $('#pwF', p).addEventListener('submit', async (e) => {
       e.preventDefault();

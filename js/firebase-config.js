@@ -9,3 +9,12 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "243738228552",
   appId: "1:243738228552:web:771fba47dbc324cf33257d"
 };
+
+/* Cloudinary: onde ficam as fotos e vídeos (plano gratuito, sem cartão).
+   cloudName: aparece no painel do Cloudinary (Dashboard).
+   uploadPreset: nome do "Upload preset" do tipo Unsigned criado em Settings > Upload. */
+window.CLOUDINARY_CONFIG = {
+  cloudName: "COLOQUE-AQUI",
+  uploadPreset: "COLOQUE-AQUI",
+  folder: "jardim-encantado"
+};

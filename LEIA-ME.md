@@ -25,7 +25,7 @@ Clique no botão **Administrador**, no topo, e entre com o **e-mail e a senha** 
 
 Tudo fica salvo no Firebase (projeto `jardim-encantado-ab7ca`):
 - Firestore: textos e listas. `site/...` é público, `private/...` (turmas e alunos) só o administrador lê.
-- Storage: fotos e vídeos (pasta `media/`), até 100 MB por vídeo.
+- Cloudinary (plano gratuito): fotos e vídeos, na pasta `jardim-encantado`, até 100 MB por vídeo. Ao excluir uma foto no painel, ela sai do site, mas o arquivo continua no Cloudinary.
 
 Enquanto o administrador não salvar nada, o site mostra o conteúdo inicial (panfletos e vídeos da pasta `img/` e `videos/`).
 
@@ -35,7 +35,7 @@ Antes de usar, configure as regras de segurança: veja **REGRAS-FIREBASE.md**.
 
 - `index.html`: a página
 - `css/style.css`: cores e visual
-- `js/firebase-config.js`: qual projeto do Firebase o site usa
+- `js/firebase-config.js`: qual projeto do Firebase e qual conta do Cloudinary o site usa
 - `js/db.js`: leitura e gravação no Firebase
 - `js/vendor/`: bibliotecas do Firebase (versão 10.12.2)
 - `js/site.js`: parte pública (carrossel, galeria, agenda, equipe, pacotes)

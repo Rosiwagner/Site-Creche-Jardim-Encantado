@@ -11,7 +11,7 @@
   const PRIVATE_KEYS = ['classes', 'students'];
   const cache = new Map();
   const failed = new Set(); // chaves que não conseguimos ler do Firebase
-  let fs = null, storage = null, auth = null, ready = false;
+  let fs = null, auth = null, ready = false;
   const authListeners = [];
 
   function uid(prefix) {
@@ -65,7 +65,6 @@
       if (!window.firebase || !window.FIREBASE_CONFIG) throw new Error('Firebase não carregou');
       const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(window.FIREBASE_CONFIG);
       fs = app.firestore();
-      storage = app.storage();
       auth = app.auth();
       await new Promise((resolve) => {
         let first = true;
@@ -132,24 +131,39 @@
     });
   }
 
-  /** Envia a foto ou o vídeo para o Firebase Storage e devolve o endereço público. */
+  /** Envia a foto ou o vídeo para o Cloudinary e devolve o endereço público. */
   async function saveUpload(file, maxPx, onProgress) {
     if (!ready || !isAdmin()) throw new Error('Entre como administrador para enviar arquivos');
+    const cfg = window.CLOUDINARY_CONFIG || {};
+    if (!cfg.cloudName || !cfg.uploadPreset || /COLOQUE/.test(cfg.cloudName + cfg.uploadPreset)) {
+      throw Object.assign(new Error('Cloudinary não configurado'), { code: 'cloudinary/not-configured' });
+    }
     const isVideo = file.type.startsWith('video/');
     const blob = isVideo ? file : await shrinkImage(file, maxPx);
-    const ext = isVideo ? ((file.name.split('.').pop() || 'mp4').toLowerCase()) : 'jpg';
-    const ref = storage.ref('media/' + uid('m') + '.' + ext);
-    const task = ref.put(blob, { contentType: isVideo ? (file.type || 'video/mp4') : 'image/jpeg', cacheControl: 'public,max-age=31536000' });
-    if (onProgress) task.on('state_changed', (s) => onProgress(s.bytesTransferred / (s.totalBytes || 1)));
-    await task;
-    const src = await ref.getDownloadURL();
-    return { src, type: isVideo ? 'video' : 'image' };
+    const form = new FormData();
+    form.append('file', blob, isVideo ? (file.name || 'video.mp4') : 'foto.jpg');
+    form.append('upload_preset', cfg.uploadPreset);
+    if (cfg.folder) form.append('folder', cfg.folder);
+    const endpoint = 'https://api.cloudinary.com/v1_1/' + encodeURIComponent(cfg.cloudName) + '/' + (isVideo ? 'video' : 'image') + '/upload';
+    const res = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', endpoint);
+      if (onProgress) xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+      xhr.onload = () => {
+        let data = {};
+        try { data = JSON.parse(xhr.responseText); } catch (e) { /* ok */ }
+        if (xhr.status >= 200 && xhr.status < 300 && data.secure_url) resolve(data);
+        else reject(Object.assign(new Error((data.error && data.error.message) || 'Falha no envio'), { code: 'cloudinary/upload-failed' }));
+      };
+      xhr.onerror = () => reject(Object.assign(new Error('Sem internet'), { code: 'cloudinary/network' }));
+      xhr.send(form);
+    });
+    return { src: res.secure_url, type: isVideo ? 'video' : 'image' };
   }
 
-  async function delMedia(src) {
-    if (!src || !ready || !/firebasestorage|storage\.googleapis/.test(src)) return;
-    try { await storage.refFromURL(src).delete(); } catch (e) { console.warn('Não apaguei o arquivo', e); }
-  }
+  /* Sem servidor, o site não consegue apagar arquivos do Cloudinary.
+     A foto sai do site; o arquivo continua no painel do Cloudinary (pasta jardim-encantado). */
+  async function delMedia() { /* nada a fazer */ }
 
   async function url(src) { return src || ''; }
 
