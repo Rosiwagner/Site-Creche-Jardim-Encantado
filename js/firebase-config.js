@@ -14,7 +14,7 @@ window.FIREBASE_CONFIG = {
    cloudName: aparece no painel do Cloudinary (Dashboard).
    uploadPreset: nome do "Upload preset" do tipo Unsigned criado em Settings > Upload. */
 window.CLOUDINARY_CONFIG = {
-  cloudName: "COLOQUE-AQUI",
-  uploadPreset: "COLOQUE-AQUI",
+  cloudName: "cm7kla3e",
+  uploadPreset: "ml_default",
   folder: "jardim-encantado"
 };
