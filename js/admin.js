@@ -137,7 +137,7 @@
         const ok = await onSave();
         if (ok === false) return;
         saved = true; closeModal(); await refresh(); toast('Salvo!');
-      } catch (err) { console.error(err); toast('Não foi possível salvar. Confira a internet e tente de novo.', true); }
+      } catch (err) { console.error(err); toast('Não foi possível salvar (' + (err.code || err.message || 'erro') + ').', true); }
     });
     return { body, track: (arr) => { cleanup = arr; } };
   }

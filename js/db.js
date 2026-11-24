@@ -12,6 +12,7 @@
   const cache = new Map();
   const failed = new Set(); // chaves que não conseguimos ler do Firebase
   let fs = null, auth = null, ready = false;
+  let F = {}; // funções do Firebase (versão modular, carregadas de js/vendor)
   const authListeners = [];
 
   function uid(prefix) {
@@ -55,20 +56,24 @@
   const clone = (v) => JSON.parse(JSON.stringify(v));
 
   function docRef(key) {
-    if (PUBLIC_KEYS.includes(key)) return fs.collection('site').doc(key);
-    if (PRIVATE_KEYS.includes(key)) return fs.collection('private').doc(key);
+    if (PUBLIC_KEYS.includes(key)) return F.doc(fs, 'site', key);
+    if (PRIVATE_KEYS.includes(key)) return F.doc(fs, 'private', key);
     return null;
   }
 
   async function init() {
     try {
-      if (!window.firebase || !window.FIREBASE_CONFIG) throw new Error('Firebase não carregou');
-      const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(window.FIREBASE_CONFIG);
-      fs = app.firestore();
-      auth = app.auth();
+      if (!window.FIREBASE_CONFIG) throw new Error('Configuração do Firebase não encontrada');
+      const base = (name) => new URL('js/vendor/' + name, document.baseURI).href;
+      const [mApp, mAuth, mFs] = await Promise.all([import(base('firebase-app.js')), import(base('firebase-auth.js')), import(base('firebase-firestore.js'))]);
+      F = Object.assign({}, mApp, mAuth, mFs);
+      const app = F.getApps().length ? F.getApp() : F.initializeApp(window.FIREBASE_CONFIG);
+      const dbId = window.FIRESTORE_DATABASE_ID || '(default)';
+      fs = dbId === '(default)' ? F.getFirestore(app) : F.getFirestore(app, dbId);
+      auth = F.getAuth(app);
       await new Promise((resolve) => {
         let first = true;
-        auth.onAuthStateChanged((u) => {
+        F.onAuthStateChanged(auth, (u) => {
           if (!u) PRIVATE_KEYS.forEach((k) => cache.delete(k));
           authListeners.forEach((fn) => { try { fn(u); } catch (e) { console.error(e); } });
           if (first) { first = false; resolve(); }
@@ -87,8 +92,8 @@
     if (!ref) return clone(def === undefined ? null : def);
     if (PRIVATE_KEYS.includes(key) && !isAdmin()) return clone(def);
     try {
-      const snap = await Promise.race([ref.get(), new Promise((_, rej) => setTimeout(() => rej(new Error('demorou demais')), 7000))]);
-      const v = snap.exists ? (snap.data().items || []) : def;
+      const snap = await Promise.race([F.getDoc(ref), new Promise((_, rej) => setTimeout(() => rej(new Error('demorou demais')), 7000))]);
+      const v = snap.exists() ? (snap.data().items || []) : def;
       cache.set(key, v);
       failed.delete(key);
       return clone(v);
@@ -106,7 +111,7 @@
     if (!isAdmin()) throw new Error('Entre como administrador para salvar');
     // nunca salvar por cima de dados que não conseguimos ler (evita apagar o que já existe)
     if (failed.has(key)) { await get(key); throw new Error('Os dados não tinham carregado. Tente de novo.'); }
-    await ref.set({ items: value, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    await F.setDoc(ref, { items: value, updatedAt: F.serverTimestamp() });
     cache.set(key, clone(value));
   }
 
@@ -178,14 +183,14 @@
   /* ---------- Login ---------- */
   function isAdmin() { return !!(auth && auth.currentUser); }
   function adminEmail() { return auth && auth.currentUser ? auth.currentUser.email : ''; }
-  async function login(email, pass) { await auth.signInWithEmailAndPassword(email, pass); }
-  async function logout() { if (auth) await auth.signOut(); }
-  async function sendReset(email) { await auth.sendPasswordResetEmail(email); }
+  async function login(email, pass) { await F.signInWithEmailAndPassword(auth, email, pass); }
+  async function logout() { if (auth) await F.signOut(auth); }
+  async function sendReset(email) { await F.sendPasswordResetEmail(auth, email); }
   async function changePassword(oldPass, newPass) {
     const u = auth.currentUser;
-    const cred = firebase.auth.EmailAuthProvider.credential(u.email, oldPass);
-    await u.reauthenticateWithCredential(cred);
-    await u.updatePassword(newPass);
+    const cred = F.EmailAuthProvider.credential(u.email, oldPass);
+    await F.reauthenticateWithCredential(u, cred);
+    await F.updatePassword(u, newPass);
   }
   function onAuth(fn) { authListeners.push(fn); if (ready) fn(auth.currentUser); }
 

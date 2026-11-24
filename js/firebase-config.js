@@ -10,6 +10,9 @@ window.FIREBASE_CONFIG = {
   appId: "1:243738228552:web:771fba47dbc324cf33257d"
 };
 
+/* Nome do banco do Firestore. O seu foi criado com o nome "default". */
+window.FIRESTORE_DATABASE_ID = "default";
+
 /* Cloudinary: onde ficam as fotos e vídeos (plano gratuito, sem cartão).
    cloudName: aparece no painel do Cloudinary (Dashboard).
    uploadPreset: nome do "Upload preset" do tipo Unsigned criado em Settings > Upload. */
