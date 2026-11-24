@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--HEAD-START-->
+<title>Jardim Encantado</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Creche-Escola e Hotel Infantil Jardim Encantado, no Guamá. Onde aprender faz parte da brincadeira.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&family=Caveat:wght@600;700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<!--HEAD-END-->
+</head>
+<body>
+<!--BODY-START-->
+<header class="topbar" id="topo">
+  <div class="topbar-inner">
+    <a class="brand" href="#inicio" aria-label="Jardim Encantado, início">
+      <span class="brand-small">Creche-Escola</span>
+      <span class="brand-jardim">Jard<span class="brand-flower" aria-hidden="true"></span>m</span>
+      <span class="brand-tiles" aria-hidden="true"><i>E</i><i>N</i><i>C</i><i>A</i><i>N</i><i>T</i><i>A</i><i>D</i><i>O</i></span>
+    </a>
+    <button class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="mainNav">
+      <span></span><span></span><span></span><b class="sr">Abrir menu</b>
+    </button>
+    <nav class="main-nav" id="mainNav" aria-label="Menu principal">
+      <a href="#sobre">Sobre nós</a>
+      <a href="#estrutura">Estrutura</a>
+      <a href="#horarios">Horários</a>
+      <a href="#pacotes">Pacotes</a>
+      <a href="#galeria">Galeria</a>
+      <a href="#agenda">Agenda</a>
+      <a href="#equipe">Equipe</a>
+      <a href="#contato">Contato</a>
+      <button class="btn-admin" id="btnAdmin" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 0 1 6 0v3H9z"/></svg>
+        <span id="btnAdminLabel">Administrador</span>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- CARROSSEL -->
+  <section class="hero" id="inicio" aria-label="Fotos em destaque">
+    <div class="carousel" id="carousel" aria-roledescription="carrossel">
+      <div class="carousel-track" id="carouselTrack"></div>
+      <button class="car-btn prev" id="carPrev" aria-label="Foto anterior">‹</button>
+      <button class="car-btn next" id="carNext" aria-label="Próxima foto">›</button>
+      <div class="car-dots" id="carDots" role="tablist" aria-label="Escolher foto"></div>
+      <div class="car-empty" id="carEmpty" hidden>
+        <p>As fotos do carrossel aparecem aqui. Entre como administrador para adicionar até 30 fotos.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- BOAS-VINDAS -->
+  <section class="welcome">
+    <div class="wrap welcome-inner">
+      <div class="welcome-text">
+        <p class="eyebrow">Creche-Escola e Hotel Infantil</p>
+        <h1>Jardim Encantado</h1>
+        <p class="slogan">Onde aprender faz parte da brincadeira!</p>
+        <p class="lead">Do Baby Class ao Jardim 2, um lugar limpo, aconchegante, seguro e muito divertido no coração do Guamá.</p>
+        <div class="cta-row">
+          <a class="btn btn-pink" href="#contato">Agende sua visita</a>
+          <a class="btn btn-green" href="#pacotes">Ver pacotes 2027</a>
+        </div>
+      </div>
+      <ul class="values" aria-label="Nossos valores">
+        <li class="v-green">Brincar</li>
+        <li class="v-pink">Explorar</li>
+        <li class="v-yellow">Conviver</li>
+        <li class="v-blue">Respeitar</li>
+        <li class="v-yellow">Cuidar</li>
+        <li class="v-green">Aprender</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SOBRE -->
+  <section class="section parchment-bg" id="sobre">
+    <div class="wrap two-col">
+      <div class="scroll-card">
+        <h2 class="sign">Sobre nós</h2>
+        <p class="kicker">Venha conhecer um novo conceito de escola que chegou para ficar no bairro do Guamá.</p>
+        <p>Localizada bem próxima à <strong>Praça Benedito Monteiro</strong>, no <strong>bairro do Guamá</strong>, a Creche-Escola e Hotel Infantil <strong>“Jardim Encantado”</strong> tem profissionais super qualificados para cuidar de seu filho.</p>
+        <p>Com uma excelente infraestrutura, a Jardim Encantado oferece aos seus alunos e alunas um lugar limpo, aconchegante, harmonioso, seguro e muito divertido, com o objetivo de estimular o desenvolvimento e o aprendizado de crianças desde o <strong>Baby Class até o Jardim 2</strong>.</p>
+        <ul class="pillars">
+          <li>Educação com afeto</li>
+          <li>Infância com sentido</li>
+          <li>Famílias em parceria</li>
+          <li>Sonhos que crescem</li>
+        </ul>
+      </div>
+      <figure class="flyer-frame">
+        <img src="img/sobre-nos.jpg" alt="Panfleto Sobre nós da Jardim Encantado" loading="lazy">
+      </figure>
+    </div>
+  </section>
+
+  <!-- ESTRUTURA -->
+  <section class="section" id="estrutura">
+    <div class="wrap">
+      <h2 class="sign">Nossa infraestrutura</h2>
+      <p class="section-sub">Espaços planejados com carinho para o desenvolvimento do seu filho.</p>
+      <ul class="infra-grid">
+        <li><span class="ic">❄</span><b>Salas amplas e climatizadas</b></li>
+        <li><span class="ic">◉</span><b>Câmeras de segurança</b><small>monitoramento interno</small></li>
+        <li><span class="ic">✿</span><b>Brinquedoteca</b></li>
+        <li><span class="ic">♥</span><b>Bebêteca</b></li>
+        <li><span class="ic">▶</span><b>Videoteca</b></li>
+        <li><span class="ic">✎</span><b>Biblioteca</b></li>
+        <li><span class="ic">♪</span><b>Sala de ritmos</b></li>
+        <li><span class="ic">☀</span><b>Área de lazer</b></li>
+        <li><span class="ic">☾</span><b>Sala de descanso</b></li>
+        <li><span class="ic">✦</span><b>Refeitório</b></li>
+        <li><span class="ic">◍</span><b>Banheiro infantil</b></li>
+        <li><span class="ic">❀</span><b>Outros espaços pedagógicos</b></li>
+      </ul>
+      <figure class="flyer-wide">
+        <img src="img/infraestrutura.jpg" alt="Fotos dos espaços: salas, sala de ritmos, biblioteca, bebêteca, sala de descanso, banheiro infantil e refeitório" loading="lazy">
+      </figure>
+    </div>
+  </section>
+
+  <!-- HORÁRIOS -->
+  <section class="section grass-bg" id="horarios">
+    <div class="wrap">
+      <h2 class="sign">Horários</h2>
+      <p class="section-sub">Atendemos crianças a partir de <strong>1 ano</strong> de idade. É requisito que a criança já consiga andar sozinha e com desenvoltura.</p>
+      <div class="hours">
+        <article class="hour-card sun">
+          <h3>Manhã</h3>
+          <p class="time">7h30 às 11h30</p>
+          <p>Horário parcial</p>
+        </article>
+        <article class="hour-card afternoon">
+          <h3>Tarde</h3>
+          <p class="time">14h às 18h</p>
+          <p>Horário parcial</p>
+        </article>
+        <article class="hour-card full">
+          <h3>Integral</h3>
+          <p class="time">5 a 10 horas por dia</p>
+          <p>Horários a critério dos pais, definidos na matrícula.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- PACOTES -->
+  <section class="section" id="pacotes">
+    <div class="wrap">
+      <h2 class="sign">Nossos pacotes 2027</h2>
+      <p class="section-sub">A matrícula já equivale à 1ª mensalidade. As demais mensalidades de 2027 valem se pagas até a data de vencimento combinada na matrícula. Valores válidos para contratos assinados até <strong>30/01/2027</strong>.</p>
+      <h3 class="pk-group">Parciais (4 horas)</h3>
+      <div class="packages" id="pkPartial"></div>
+      <h3 class="pk-group">Integrais</h3>
+      <div class="packages" id="pkFull"></div>
+      <div class="notice">
+        <p><strong>Observação:</strong> os pacotes parciais (Margarida e Tulipa) não incluem alimentação.</p>
+        <p>Caso o contratante desista do contrato e da matrícula <strong>antes do início das aulas</strong>, a escola devolve 70% do valor pago na matrícula em até 30 dias úteis, deduzindo 30% para custos administrativos, materiais e encargos. <strong>Após o início das aulas não há devolução de valores.</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- GALERIA -->
+  <section class="section parchment-bg" id="galeria">
+    <div class="wrap">
+      <h2 class="sign">Galeria de fotos e vídeos</h2>
+      <p class="section-sub">Os álbuns dos nossos eventos e do dia a dia na escola.</p>
+      <div class="albums" id="albumsGrid"></div>
+    </div>
+  </section>
+
+  <!-- AGENDA -->
+  <section class="section" id="agenda">
+    <div class="wrap">
+      <h2 class="sign">Agenda de eventos</h2>
+      <p class="section-sub">Formaturas, Natal, Dia das Mães, Dia dos Pais, Dia das Crianças e muito mais.</p>
+      <div class="agenda">
+        <div class="calendar" id="calendar"></div>
+        <div class="upcoming">
+          <h3 id="dayTitle">Próximos eventos</h3>
+          <ul class="event-list" id="eventList"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EQUIPE -->
+  <section class="section grass-bg" id="equipe">
+    <div class="wrap">
+      <h2 class="sign">Nossa equipe</h2>
+      <p class="section-sub">Profissionais qualificados que cuidam do seu filho com afeto.</p>
+      <div class="staff" id="staffGrid"></div>
+    </div>
+  </section>
+
+  <!-- CONTATO -->
+  <section class="section" id="contato">
+    <div class="wrap two-col">
+      <div class="contact-card">
+        <h2 class="sign">Ligue e agende sua visita</h2>
+        <p class="addr"><strong>Rua Ezeriel Mônico de Matos, nº 49</strong><br>Bairro do Guamá, perto da Praça Benedito Monteiro</p>
+        <ul class="phones">
+          <li><span class="ph-num">(91) 99257-9446</span>
+            <a class="btn btn-green sm" href="https://wa.me/5591992579446" target="_blank" rel="noopener">WhatsApp</a>
+            <button class="btn btn-ghost sm copy" data-copy="(91) 99257-9446" type="button">Copiar</button></li>
+          <li><span class="ph-num">(91) 98875-2307</span>
+            <a class="btn btn-green sm" href="https://wa.me/5591988752307" target="_blank" rel="noopener">WhatsApp</a>
+            <button class="btn btn-ghost sm copy" data-copy="(91) 98875-2307" type="button">Copiar</button></li>
+        </ul>
+        <a class="btn btn-pink" href="https://www.google.com/maps/search/?api=1&query=Rua+Ezeriel+M%C3%B4nico+de+Matos+49+Guam%C3%A1+Bel%C3%A9m+PA" target="_blank" rel="noopener">Ver no mapa</a>
+      </div>
+      <figure class="flyer-frame">
+        <img src="img/onde-fica.jpg" alt="Fachada da escola na Rua Ezeriel Mônico de Matos, 49" loading="lazy">
+      </figure>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <p class="slogan">Onde aprender faz parte da brincadeira</p>
+    <p>Creche-Escola e Hotel Infantil Jardim Encantado · Rua Ezeriel Mônico de Matos, nº 49, Guamá · (91) 99257-9446 · (91) 98875-2307</p>
+  </div>
+</footer>
+
+<!-- MODAL GENÉRICO -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-x" data-close aria-label="Fechar">×</button>
+    <h3 id="modalTitle"></h3>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<!-- VISUALIZADOR DE FOTOS/VÍDEOS -->
+<div class="lightbox" id="lightbox" hidden>
+  <button class="lb-x" id="lbClose" aria-label="Fechar">×</button>
+  <button class="lb-nav prev" id="lbPrev" aria-label="Anterior">‹</button>
+  <div class="lb-stage" id="lbStage"></div>
+  <button class="lb-nav next" id="lbNext" aria-label="Próxima">›</button>
+  <p class="lb-cap" id="lbCap"></p>
+</div>
+
+<!-- PAINEL DO ADMINISTRADOR -->
+<div class="admin" id="admin" hidden>
+  <div class="admin-head">
+    <h2>Painel do administrador</h2>
+    <button class="btn btn-ghost sm" id="adminLogout" type="button">Sair</button>
+    <button class="btn btn-green sm" id="adminClose" type="button">Ver o site</button>
+  </div>
+  <div class="admin-body">
+    <nav class="admin-tabs" id="adminTabs" aria-label="Seções do painel">
+      <button data-tab="carrossel" class="on">Carrossel</button>
+      <button data-tab="albuns">Álbuns</button>
+      <button data-tab="eventos">Agenda</button>
+      <button data-tab="equipe">Funcionários</button>
+      <button data-tab="turmas">Turmas</button>
+      <button data-tab="alunos">Alunos e mensalidades</button>
+      <button data-tab="config">Configurações</button>
+    </nav>
+    <div class="admin-panel" id="adminPanel"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="js/db.js"></script>
+<script src="js/site.js"></script>
+<script src="js/admin.js"></script>
+<!--BODY-END-->
+</body>
+</html>
