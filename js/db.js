@@ -146,7 +146,9 @@
     const isVideo = file.type.startsWith('video/');
     const blob = isVideo ? file : await shrinkImage(file, maxPx);
     const form = new FormData();
-    form.append('file', blob, isVideo ? (file.name || 'video.mp4') : 'foto.jpg');
+    // nome único para cada envio: se o preset usar o nome do arquivo, cada foto vira um arquivo novo
+    const ext = isVideo ? ((file.name || '').split('.').pop() || 'mp4').toLowerCase() : 'jpg';
+    form.append('file', blob, uid(isVideo ? 'video' : 'foto') + '.' + ext);
     form.append('upload_preset', cfg.uploadPreset);
     if (cfg.folder) form.append('folder', cfg.folder);
     const endpoint = 'https://api.cloudinary.com/v1_1/' + encodeURIComponent(cfg.cloudName) + '/' + (isVideo ? 'video' : 'image') + '/upload';
