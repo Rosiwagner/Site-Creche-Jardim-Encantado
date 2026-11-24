@@ -1,104 +1,117 @@
 /* =========================================================
-   Jardim Encantado - armazenamento (versão 1)
-   Os dados ficam no IndexedDB do próprio navegador.
-   Fotos e vídeos enviados pelo administrador viram "idb:<id>".
-   Na próxima versão, este arquivo é o único que precisa mudar
-   para usar um servidor de verdade (ex.: Firebase).
+   Jardim Encantado - armazenamento (versão 2, Firebase)
+   - Textos e listas: Firestore
+       site/{slides|albums|events|staff}   -> público (qualquer um lê)
+       private/{classes|students}          -> só o administrador
+   - Fotos e vídeos: Firebase Storage (pasta media/)
+   - Login do administrador: Firebase Authentication (e-mail e senha)
    ========================================================= */
 (function () {
-  const DB_NAME = 'jardim-encantado';
-  const DB_VERSION = 1;
-  let idb = null;
-  const memKV = new Map();     // reserva se o IndexedDB não estiver disponível
-  const memMedia = new Map();
-  const urlCache = new Map();
-
-  function open() {
-    return new Promise((resolve) => {
-      try {
-        const req = indexedDB.open(DB_NAME, DB_VERSION);
-        req.onupgradeneeded = () => {
-          const d = req.result;
-          if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv');
-          if (!d.objectStoreNames.contains('media')) d.createObjectStore('media');
-        };
-        req.onsuccess = () => { idb = req.result; resolve(true); };
-        req.onerror = () => resolve(false);
-        req.onblocked = () => resolve(false);
-      } catch (e) { resolve(false); }
-    });
-  }
-
-  function op(store, mode, fn) {
-    if (!idb) return Promise.reject(new Error('sem idb'));
-    return new Promise((resolve, reject) => {
-      const tx = idb.transaction(store, mode);
-      const st = tx.objectStore(store);
-      const req = fn(st);
-      tx.oncomplete = () => resolve(req && req.result);
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
-    });
-  }
-
-  async function get(key, fallback) {
-    try {
-      const v = idb ? await op('kv', 'readonly', (s) => s.get(key)) : memKV.get(key);
-      return v === undefined ? fallback : v;
-    } catch (e) { return memKV.has(key) ? memKV.get(key) : fallback; }
-  }
-  async function set(key, value) {
-    memKV.set(key, value);
-    try { if (idb) await op('kv', 'readwrite', (s) => s.put(value, key)); }
-    catch (e) { console.warn('Falha ao salvar', key, e); throw e; }
-  }
+  const PUBLIC_KEYS = ['slides', 'albums', 'events', 'staff'];
+  const PRIVATE_KEYS = ['classes', 'students'];
+  const cache = new Map();
+  const failed = new Set(); // chaves que não conseguimos ler do Firebase
+  let fs = null, storage = null, auth = null, ready = false;
+  const authListeners = [];
 
   function uid(prefix) {
     return (prefix || 'id') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   }
 
-  async function putMedia(blob) {
-    const id = uid('m');
-    memMedia.set(id, blob);
-    try { if (idb) await op('media', 'readwrite', (s) => s.put(blob, id)); }
-    catch (e) { memMedia.delete(id); throw e; }
-    return 'idb:' + id;
-  }
-  async function getMediaBlob(id) {
-    if (memMedia.has(id)) return memMedia.get(id);
-    try { return idb ? await op('media', 'readonly', (s) => s.get(id)) : null; } catch (e) { return null; }
-  }
-  async function delMedia(src) {
-    if (!src || !String(src).startsWith('idb:')) return;
-    const id = src.slice(4);
-    memMedia.delete(id);
-    if (urlCache.has(src)) { URL.revokeObjectURL(urlCache.get(src)); urlCache.delete(src); }
-    try { if (idb) await op('media', 'readwrite', (s) => s.delete(id)); } catch (e) { /* ignora */ }
+  /* ---------- Conteúdo inicial (enquanto o administrador não salvar nada) ---------- */
+  const FLYERS = [
+    ['img/capa.jpg', 'Creche-Escola Jardim Encantado'],
+    ['img/sobre-nos.jpg', 'Sobre nós'],
+    ['img/infraestrutura.jpg', 'Nossa infraestrutura'],
+    ['img/horarios.jpg', 'Horários parciais e integrais'],
+    ['img/pacote-margarida.jpg', 'Pacote Margarida (manhã)'],
+    ['img/pacote-tulipa.jpg', 'Pacote Tulipa (tarde)'],
+    ['img/pacotes-integrais.jpg', 'Pacotes integrais'],
+    ['img/onde-fica.jpg', 'Onde fica nossa escola'],
+    ['img/agende-visita.jpg', 'Ligue e agende sua visita']
+  ];
+  const note = 'Data comemorativa. O administrador pode ajustar com o dia e horário da festa na escola.';
+  const DEFAULTS = {
+    slides: FLYERS.map(([src, caption], i) => ({ id: 's_ini' + i, src, caption })),
+    albums: [{
+      id: 'a_propagandas', title: 'Nossas propagandas', date: '2026-11-19', eventId: '',
+      description: 'Panfletos e vídeos de divulgação da escola.',
+      items: [
+        { id: 'i_v1', type: 'video', src: 'videos/video-1.mp4', poster: 'img/video-1-capa.jpg', caption: 'Vídeo de divulgação 1' },
+        { id: 'i_v2', type: 'video', src: 'videos/video-2.mp4', poster: 'img/video-2-capa.jpg', caption: 'Vídeo de divulgação 2' }
+      ].concat(FLYERS.concat([['img/obrigada.jpg', 'Obrigada por sua atenção!']]).map(([src, caption], i) => ({ id: 'i_f' + i, type: 'image', src, caption })))
+    }],
+    events: [
+      { id: 'e_natal', title: 'Natal', type: 'Natal', date: '2026-12-25', time: '', description: note, albumId: '' },
+      { id: 'e_matr', title: 'Último dia dos valores promocionais de matrícula 2027', type: 'Matrículas', date: '2027-01-30', time: '', description: 'Valores dos pacotes 2027 válidos para contratos assinados até esta data.', albumId: '' },
+      { id: 'e_maes', title: 'Dia das Mães', type: 'Dia das Mães', date: '2027-05-09', time: '', description: note, albumId: '' },
+      { id: 'e_pais', title: 'Dia dos Pais', type: 'Dia dos Pais', date: '2027-08-08', time: '', description: note, albumId: '' },
+      { id: 'e_cri', title: 'Dia das Crianças', type: 'Dia das Crianças', date: '2027-10-12', time: '', description: note, albumId: '' }
+    ],
+    staff: [],
+    classes: [],
+    students: []
+  };
+  const clone = (v) => JSON.parse(JSON.stringify(v));
+
+  function docRef(key) {
+    if (PUBLIC_KEYS.includes(key)) return fs.collection('site').doc(key);
+    if (PRIVATE_KEYS.includes(key)) return fs.collection('private').doc(key);
+    return null;
   }
 
-  /** Devolve uma URL que o navegador consegue mostrar. */
-  async function url(src) {
-    if (!src) return '';
-    if (!String(src).startsWith('idb:')) return src;
-    if (urlCache.has(src)) return urlCache.get(src);
-    const blob = await getMediaBlob(src.slice(4));
-    if (!blob) return '';
-    const u = URL.createObjectURL(blob);
-    urlCache.set(src, u);
-    return u;
+  async function init() {
+    try {
+      if (!window.firebase || !window.FIREBASE_CONFIG) throw new Error('Firebase não carregou');
+      const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(window.FIREBASE_CONFIG);
+      fs = app.firestore();
+      storage = app.storage();
+      auth = app.auth();
+      await new Promise((resolve) => {
+        let first = true;
+        auth.onAuthStateChanged((u) => {
+          if (!u) PRIVATE_KEYS.forEach((k) => cache.delete(k));
+          authListeners.forEach((fn) => { try { fn(u); } catch (e) { console.error(e); } });
+          if (first) { first = false; resolve(); }
+        });
+      });
+      ready = true;
+    } catch (e) {
+      console.error(e);
+    }
   }
 
-  /** Preenche todos os <img data-src> e <video data-src> dentro de root. */
-  async function hydrate(root) {
-    const els = (root || document).querySelectorAll('[data-src]');
-    await Promise.all(Array.from(els).map(async (el) => {
-      const u = await url(el.getAttribute('data-src'));
-      if (u) { el.src = u; } else { el.removeAttribute('src'); }
-      el.removeAttribute('data-src');
-    }));
+  async function get(key, fallback) {
+    if (cache.has(key) && !(failed.has(key) && isAdmin())) return clone(cache.get(key));
+    const def = DEFAULTS[key] !== undefined ? DEFAULTS[key] : fallback;
+    const ref = ready && docRef(key);
+    if (!ref) return clone(def === undefined ? null : def);
+    if (PRIVATE_KEYS.includes(key) && !isAdmin()) return clone(def);
+    try {
+      const snap = await Promise.race([ref.get(), new Promise((_, rej) => setTimeout(() => rej(new Error('demorou demais')), 7000))]);
+      const v = snap.exists ? (snap.data().items || []) : def;
+      cache.set(key, v);
+      failed.delete(key);
+      return clone(v);
+    } catch (e) {
+      console.warn('Falha ao ler', key, e);
+      cache.set(key, def);
+      failed.add(key);
+      return clone(def);
+    }
   }
 
-  /** Reduz a foto para no máximo `max` px e devolve um Blob JPEG. */
+  async function set(key, value) {
+    const ref = ready && docRef(key);
+    if (!ref) throw new Error('Sem conexão com o Firebase');
+    if (!isAdmin()) throw new Error('Entre como administrador para salvar');
+    // nunca salvar por cima de dados que não conseguimos ler (evita apagar o que já existe)
+    if (failed.has(key)) { await get(key); throw new Error('Os dados não tinham carregado. Tente de novo.'); }
+    await ref.set({ items: value, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    cache.set(key, clone(value));
+  }
+
+  /* ---------- Fotos e vídeos ---------- */
   function shrinkImage(file, max) {
     max = max || 1600;
     return new Promise((resolve) => {
@@ -119,82 +132,53 @@
     });
   }
 
-  /** Salva um arquivo enviado (foto ou vídeo). */
-  async function saveUpload(file, maxPx) {
+  /** Envia a foto ou o vídeo para o Firebase Storage e devolve o endereço público. */
+  async function saveUpload(file, maxPx, onProgress) {
+    if (!ready || !isAdmin()) throw new Error('Entre como administrador para enviar arquivos');
     const isVideo = file.type.startsWith('video/');
     const blob = isVideo ? file : await shrinkImage(file, maxPx);
-    const src = await putMedia(blob);
+    const ext = isVideo ? ((file.name.split('.').pop() || 'mp4').toLowerCase()) : 'jpg';
+    const ref = storage.ref('media/' + uid('m') + '.' + ext);
+    const task = ref.put(blob, { contentType: isVideo ? (file.type || 'video/mp4') : 'image/jpeg', cacheControl: 'public,max-age=31536000' });
+    if (onProgress) task.on('state_changed', (s) => onProgress(s.bytesTransferred / (s.totalBytes || 1)));
+    await task;
+    const src = await ref.getDownloadURL();
     return { src, type: isVideo ? 'video' : 'image' };
   }
 
-  /* ---------- Senha ---------- */
-  async function hash(text) {
-    const salt = 'jardim-encantado::';
-    try {
-      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + text));
-      return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
-    } catch (e) {
-      let h = 5381; const s = salt + text;
-      for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
-      return 'x' + (h >>> 0).toString(16);
-    }
+  async function delMedia(src) {
+    if (!src || !ready || !/firebasestorage|storage\.googleapis/.test(src)) return;
+    try { await storage.refFromURL(src).delete(); } catch (e) { console.warn('Não apaguei o arquivo', e); }
   }
 
-  /* ---------- Dados iniciais (primeira vez) ---------- */
-  const FLYERS = [
-    ['img/capa.jpg', 'Creche-Escola Jardim Encantado'],
-    ['img/sobre-nos.jpg', 'Sobre nós'],
-    ['img/infraestrutura.jpg', 'Nossa infraestrutura'],
-    ['img/horarios.jpg', 'Horários parciais e integrais'],
-    ['img/pacote-margarida.jpg', 'Pacote Margarida (manhã)'],
-    ['img/pacote-tulipa.jpg', 'Pacote Tulipa (tarde)'],
-    ['img/pacotes-integrais.jpg', 'Pacotes integrais'],
-    ['img/onde-fica.jpg', 'Onde fica nossa escola'],
-    ['img/agende-visita.jpg', 'Ligue e agende sua visita']
-  ];
+  async function url(src) { return src || ''; }
 
-  async function seed() {
-    if (await get('seeded', false)) return;
-    await set('settings', { user: 'admin', passHash: await hash('jardim2027') });
-    await set('slides', FLYERS.map(([src, caption]) => ({ id: uid('s'), src, caption })));
-    await set('albums', [{
-      id: uid('a'), title: 'Nossas propagandas', date: '2026-11-19', eventId: '',
-      description: 'Panfletos e vídeos de divulgação da escola.',
-      items: [
-        { id: uid('i'), type: 'video', src: 'videos/video-1.mp4', poster: 'img/video-1-capa.jpg', caption: 'Vídeo de divulgação 1' },
-        { id: uid('i'), type: 'video', src: 'videos/video-2.mp4', poster: 'img/video-2-capa.jpg', caption: 'Vídeo de divulgação 2' }
-      ].concat(FLYERS.concat([['img/obrigada.jpg', 'Obrigada por sua atenção!']]).map(([src, caption]) => ({ id: uid('i'), type: 'image', src, caption })))
-    }]);
-    const note = 'Data comemorativa. O administrador pode ajustar com o dia e horário da festa na escola.';
-    await set('events', [
-      { id: uid('e'), title: 'Natal', type: 'Natal', date: '2026-12-25', time: '', description: note, albumId: '' },
-      { id: uid('e'), title: 'Último dia dos valores promocionais de matrícula 2027', type: 'Matrículas', date: '2027-01-30', time: '', description: 'Valores dos pacotes 2027 válidos para contratos assinados até esta data.', albumId: '' },
-      { id: uid('e'), title: 'Dia das Mães', type: 'Dia das Mães', date: '2027-05-09', time: '', description: note, albumId: '' },
-      { id: uid('e'), title: 'Dia dos Pais', type: 'Dia dos Pais', date: '2027-08-08', time: '', description: note, albumId: '' },
-      { id: uid('e'), title: 'Dia das Crianças', type: 'Dia das Crianças', date: '2027-10-12', time: '', description: note, albumId: '' }
-    ]);
-    await set('staff', []);
-    await set('classes', []);
-    await set('students', []);
-    await set('seeded', true);
-  }
-
-  async function init() {
-    await open();
-    await seed();
-  }
-
-  function reset() {
-    return new Promise((resolve) => {
-      try { if (idb) idb.close(); } catch (e) { /* ok */ }
-      idb = null;
-      try {
-        const r = indexedDB.deleteDatabase(DB_NAME);
-        r.onsuccess = r.onerror = r.onblocked = () => resolve();
-      } catch (e) { resolve(); }
+  async function hydrate(root) {
+    (root || document).querySelectorAll('[data-src]').forEach((el) => {
+      const u = el.getAttribute('data-src');
+      if (u) el.src = u;
+      el.removeAttribute('data-src');
     });
   }
 
+  /* ---------- Login ---------- */
+  function isAdmin() { return !!(auth && auth.currentUser); }
+  function adminEmail() { return auth && auth.currentUser ? auth.currentUser.email : ''; }
+  async function login(email, pass) { await auth.signInWithEmailAndPassword(email, pass); }
+  async function logout() { if (auth) await auth.signOut(); }
+  async function sendReset(email) { await auth.sendPasswordResetEmail(email); }
+  async function changePassword(oldPass, newPass) {
+    const u = auth.currentUser;
+    const cred = firebase.auth.EmailAuthProvider.credential(u.email, oldPass);
+    await u.reauthenticateWithCredential(cred);
+    await u.updatePassword(newPass);
+  }
+  function onAuth(fn) { authListeners.push(fn); if (ready) fn(auth.currentUser); }
+
   window.JE = window.JE || {};
-  window.JE.db = { init, get, set, uid, url, hydrate, saveUpload, delMedia, hash, reset, isPersistent: () => !!idb };
+  window.JE.db = {
+    init, get, set, uid, url, hydrate, saveUpload, delMedia,
+    isAdmin, adminEmail, login, logout, sendReset, changePassword, onAuth,
+    isOnline: () => ready
+  };
 })();

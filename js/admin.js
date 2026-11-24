@@ -6,33 +6,60 @@
   const db = JE.db;
   const { $, $$, esc, money, fmtDate, parseDate, todayISO, initials, MONTHS, EVENT_TYPES, PACKAGES, toast, openModal, closeModal, confirmBox } = JE;
   const MAX_SLIDES = 30;
-  const SESSION_KEY = 'je-admin';
   let currentTab = 'carrossel';
   let openAlbumId = null;
 
-  /* ---------- Sessão ---------- */
-  const isLogged = () => { try { return sessionStorage.getItem(SESSION_KEY) === '1'; } catch (e) { return window.__jeLogged === true; } };
-  const setLogged = (v) => { try { v ? sessionStorage.setItem(SESSION_KEY, '1') : sessionStorage.removeItem(SESSION_KEY); } catch (e) { /* ok */ } window.__jeLogged = v; updateAdminBtn(); };
+  /* ---------- Sessão (Firebase Authentication) ---------- */
+  const isLogged = () => db.isAdmin();
   function updateAdminBtn() { $('#btnAdminLabel').textContent = isLogged() ? 'Painel' : 'Administrador'; }
+  db.onAuth(() => { updateAdminBtn(); if (!isLogged()) { $('#admin').hidden = true; document.body.style.overflow = ''; } });
+
+  window.addEventListener('unhandledrejection', (e) => {
+    console.error(e.reason);
+    const code = (e.reason && e.reason.code) || '';
+    toast(code.includes('permission') ? 'Sem permissão para salvar. Entre de novo como administrador.' : 'Não foi possível salvar. Confira a internet e tente de novo.', true);
+  });
 
   $('#btnAdmin').addEventListener('click', () => (isLogged() ? openAdmin() : showLogin()));
   $('#adminClose').addEventListener('click', () => { $('#admin').hidden = true; document.body.style.overflow = ''; });
-  $('#adminLogout').addEventListener('click', () => { setLogged(false); $('#admin').hidden = true; document.body.style.overflow = ''; toast('Você saiu da área do administrador.'); });
+  $('#adminLogout').addEventListener('click', async () => { await db.logout(); $('#admin').hidden = true; document.body.style.overflow = ''; JE.renderAll(); toast('Você saiu da área do administrador.'); });
+
+  const AUTH_MSG = {
+    'auth/invalid-credential': 'E-mail ou senha incorretos. Confira e tente de novo.',
+    'auth/wrong-password': 'E-mail ou senha incorretos. Confira e tente de novo.',
+    'auth/user-not-found': 'E-mail ou senha incorretos. Confira e tente de novo.',
+    'auth/invalid-email': 'Esse e-mail não parece válido.',
+    'auth/too-many-requests': 'Muitas tentativas. Espere alguns minutos e tente de novo.',
+    'auth/network-request-failed': 'Sem internet. Confira a conexão e tente de novo.',
+    'auth/unauthorized-domain': 'Este endereço do site ainda não foi autorizado no Firebase (Authentication > Configurações > Domínios autorizados).'
+  };
 
   function showLogin() {
+    if (!db.isOnline()) { toast('Não foi possível conectar ao Firebase. Confira a internet e recarregue a página.', true); return; }
     const body = openModal('Entrar como administrador', `
       <form class="form" id="loginForm">
-        <div class="field"><label for="lgUser">Usuário</label><input id="lgUser" autocomplete="username" required></div>
+        <div class="field"><label for="lgUser">E-mail</label><input id="lgUser" type="email" autocomplete="username" required></div>
         <div class="field"><label for="lgPass">Senha</label><input id="lgPass" type="password" autocomplete="current-password" required></div>
-        <p class="hint" id="lgErr" hidden style="color:#b02a27">Usuário ou senha incorretos. Confira e tente de novo.</p>
-        <div class="form-actions"><button class="btn btn-green" type="submit">Entrar</button></div>
+        <p class="hint" id="lgErr" hidden style="color:#b02a27"></p>
+        <div class="form-actions"><button class="btn btn-ghost sm" type="button" id="lgForgot">Esqueci a senha</button><button class="btn btn-green" type="submit">Entrar</button></div>
       </form>`);
+    const showErr = (m) => { $('#lgErr').textContent = m; $('#lgErr').hidden = false; };
+    $('#lgForgot', body).addEventListener('click', async () => {
+      const email = $('#lgUser').value.trim();
+      if (!email) { showErr('Digite seu e-mail acima e clique de novo em “Esqueci a senha”.'); return; }
+      try { await db.sendReset(email); showErr('Se esse e-mail for do administrador, chegará uma mensagem para criar uma nova senha.'); }
+      catch (err) { showErr(AUTH_MSG[err.code] || 'Não foi possível enviar o e-mail agora.'); }
+    });
     $('#loginForm', body).addEventListener('submit', async (e) => {
       e.preventDefault();
-      const s = await db.get('settings', {});
-      const ok = $('#lgUser').value.trim().toLowerCase() === String(s.user || 'admin').toLowerCase() && (await db.hash($('#lgPass').value)) === s.passHash;
-      if (!ok) { $('#lgErr').hidden = false; return; }
-      setLogged(true); closeModal(); openAdmin(); toast('Bem-vindo ao painel!');
+      const btn = $('#loginForm button[type=submit]'); btn.disabled = true; btn.textContent = 'Entrando...';
+      try {
+        await db.login($('#lgUser').value.trim(), $('#lgPass').value);
+        closeModal(); openAdmin(); JE.renderAll(); toast('Bem-vindo ao painel!');
+      } catch (err) {
+        console.error(err); showErr(AUTH_MSG[err.code] || 'Não foi possível entrar agora. Tente de novo.');
+        btn.disabled = false; btn.textContent = 'Entrar';
+      }
     });
   }
 
@@ -84,7 +111,7 @@
       if (!f) return;
       let src;
       try { ({ src } = await db.saveUpload(f, 900)); }
-      catch (e) { console.error(e); toast('Não foi possível guardar a foto neste navegador.', true); return; }
+      catch (e) { console.error(e); toast('Não foi possível enviar a foto. Confira a internet e tente de novo.', true); return; }
       newOnes.push(src);
       $('#' + id).value = src;
       $('#' + id + 'Pv').innerHTML = `<img src="${await db.url(src)}" alt="">`;
@@ -108,7 +135,7 @@
         const ok = await onSave();
         if (ok === false) return;
         saved = true; closeModal(); await refresh(); toast('Salvo!');
-      } catch (err) { console.error(err); toast('Não foi possível salvar. O espaço do navegador pode estar cheio.', true); }
+      } catch (err) { console.error(err); toast('Não foi possível salvar. Confira a internet e tente de novo.', true); }
     });
     return { body, track: (arr) => { cleanup = arr; } };
   }
@@ -246,16 +273,21 @@
     $('#alUp', p).addEventListener('click', async () => {
       const files = await pickFiles('image/*,video/*', true);
       if (!files.length) return;
-      const big = files.filter((f) => f.type.startsWith('video/') && f.size > 80 * 1024 * 1024);
+      const big = files.filter((f) => f.type.startsWith('video/') && f.size > 100 * 1024 * 1024);
       const use = files.filter((f) => !big.includes(f));
       toast('Salvando ' + use.length + ' arquivo(s)...');
       try {
         const added = [];
-        for (const f of use) { const r = await db.saveUpload(f, 1800); added.push({ id: db.uid('i'), type: r.type, src: r.src, caption: '' }); }
+        let n = 0;
+        for (const f of use) {
+          n++;
+          const r = await db.saveUpload(f, 1800, (pct) => toast(`Enviando ${n} de ${use.length}... ${Math.round(pct * 100)}%`));
+          added.push({ id: db.uid('i'), type: r.type, src: r.src, caption: '' });
+        }
         await mutate((al) => { al.items.push(...added); });
         await refresh();
-        toast(big.length ? `Salvei ${added.length}. ${big.length} vídeo(s) com mais de 80 MB ficaram de fora.` : `${added.length} arquivo(s) adicionado(s).`, !!big.length);
-      } catch (e) { console.error(e); toast('Não foi possível salvar. O espaço do navegador pode estar cheio.', true); }
+        toast(big.length ? `Salvei ${added.length}. ${big.length} vídeo(s) com mais de 100 MB ficaram de fora.` : `${added.length} arquivo(s) adicionado(s).`, !!big.length);
+      } catch (e) { console.error(e); toast('Não foi possível salvar. Confira a internet e tente de novo.', true); }
     });
     $$('.slide-card', p).forEach((card) => {
       const iid = card.dataset.id;
@@ -672,44 +704,26 @@
      CONFIGURAÇÕES
      ======================================================= */
   async function tabConfig(p) {
-    const s = await db.get('settings', {});
-    let usage = '';
-    try { const est = await navigator.storage.estimate(); usage = `Espaço usado neste navegador: ${(est.usage / 1048576).toFixed(1)} MB.`; } catch (e) { /* ok */ }
     p.innerHTML = `
       <div class="panel-head"><h3>Configurações</h3></div>
       <div class="card" style="margin-bottom:16px">
-        <h4 style="margin:0 0 8px;font-family:var(--font-display)">Usuário e senha do administrador</h4>
+        <h4 style="margin:0 0 8px;font-family:var(--font-display)">Trocar a senha</h4>
+        <p class="hint">Você entrou como <strong>${esc(db.adminEmail())}</strong>.</p>
         <form class="form" id="pwF">
-          <div class="row"><div class="field"><label for="pwUser">Usuário</label><input id="pwUser" required value="${esc(s.user || 'admin')}" autocomplete="username"></div>
-          <div class="field"><label for="pwOld">Senha atual</label><input id="pwOld" type="password" required autocomplete="current-password"></div></div>
+          <div class="field"><label for="pwOld">Senha atual</label><input id="pwOld" type="password" required autocomplete="current-password"></div>
           <div class="row"><div class="field"><label for="pwNew">Nova senha</label><input id="pwNew" type="password" minlength="6" required autocomplete="new-password"></div>
           <div class="field"><label for="pwNew2">Repita a nova senha</label><input id="pwNew2" type="password" minlength="6" required autocomplete="new-password"></div></div>
           <div class="form-actions"><button class="btn btn-green" type="submit">Salvar nova senha</button></div>
         </form></div>
-      <div class="card" style="margin-bottom:16px">
-        <h4 style="margin:0 0 8px;font-family:var(--font-display)">Onde ficam os dados nesta versão</h4>
-        <p class="login-note">Nesta primeira versão, tudo o que você cadastra fica guardado <strong>somente neste navegador, neste computador</strong>. Quem visitar o site em outro aparelho ainda não vê as fotos, eventos e funcionários que você cadastrar aqui. Na próxima versão vamos ligar o site a um servidor (por exemplo, o Firebase) para que tudo fique salvo na internet, com login seguro.</p>
-        <p class="hint">${esc(usage)} ${db.isPersistent() ? '' : '<strong>Atenção: este navegador não permitiu salvar os dados. Eles somem ao fechar a página.</strong>'}</p>
-      </div>
       <div class="card">
-        <h4 style="margin:0 0 8px;font-family:var(--font-display)">Recomeçar do zero</h4>
-        <p class="hint">Apaga todas as fotos, álbuns, eventos, funcionários, turmas e alunos cadastrados neste navegador e volta ao conteúdo inicial. A senha volta a ser a padrão.</p>
-        <div class="form-actions" style="justify-content:flex-start"><button class="btn btn-danger" id="rsBtn" type="button">Apagar tudo</button></div>
+        <h4 style="margin:0 0 8px;font-family:var(--font-display)">Onde ficam os dados</h4>
+        <p class="hint">Tudo o que você cadastra é salvo no Firebase, na internet. Fotos, vídeos, eventos, álbuns e funcionários aparecem para qualquer pessoa que abrir o site. Turmas, alunos e mensalidades só podem ser vistos por quem entrar com o login do administrador.</p>
       </div>`;
     $('#pwF', p).addEventListener('submit', async (e) => {
       e.preventDefault();
-      const cur = await db.get('settings', {});
-      if ((await db.hash($('#pwOld').value)) !== cur.passHash) { toast('A senha atual está incorreta.', true); return; }
       if ($('#pwNew').value !== $('#pwNew2').value) { toast('As duas novas senhas não são iguais.', true); return; }
-      await db.set('settings', Object.assign({}, cur, { user: val('pwUser'), passHash: await db.hash($('#pwNew').value) }));
-      e.target.reset(); $('#pwUser').value = val('pwUser') || cur.user; toast('Senha alterada.');
-    });
-    $('#rsBtn', p).addEventListener('click', async () => {
-      if (!(await confirmBox('Apagar TODOS os dados cadastrados neste navegador? Isso não pode ser desfeito.', 'Apagar tudo'))) return;
-      await db.reset();
-      setLogged(false);
-      toast('Dados apagados. Recarregando...');
-      setTimeout(() => location.reload(), 600);
+      try { await db.changePassword($('#pwOld').value, $('#pwNew').value); e.target.reset(); toast('Senha alterada.'); }
+      catch (err) { console.error(err); toast(AUTH_MSG[err.code] || (err.code === 'auth/weak-password' ? 'Escolha uma senha com pelo menos 6 caracteres.' : 'Não foi possível trocar a senha.'), true); }
     });
   }
 

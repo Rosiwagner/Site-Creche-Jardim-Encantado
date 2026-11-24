@@ -1,4 +1,4 @@
-# Site Jardim Encantado (versão 1)
+# Site Jardim Encantado (versão 2, com Firebase)
 
 Site da Creche-Escola e Hotel Infantil Jardim Encantado, feito só com HTML, CSS e JavaScript.
 
@@ -8,12 +8,7 @@ Abra o arquivo `index.html` no navegador (Chrome, Edge ou Firefox). Para publica
 
 ## Entrar como administrador
 
-Clique no botão **Administrador**, no canto de cima.
-
-- Usuário: `admin`
-- Senha inicial: `jardim2027`
-
-Troque a senha logo no primeiro acesso, na aba **Configurações** do painel.
+Clique no botão **Administrador**, no topo, e entre com o **e-mail e a senha** que você cadastrou no Firebase, em Authentication > Usuários. Se esquecer a senha, use "Esqueci a senha" na tela de login.
 
 ## O que o administrador pode fazer
 
@@ -26,19 +21,23 @@ Troque a senha logo no primeiro acesso, na aba **Configurações** do painel.
 | Turmas | Cadastrar as turmas (Baby Class, Maternal, Jardim...) |
 | Alunos e mensalidades | Ficha completa do aluno, pesquisa por nome e controle das mensalidades pagas, pendentes e atrasadas. Só aparece no painel |
 
-## Importante sobre esta versão
+## Onde ficam os dados
 
-Ainda não existe um servidor. Tudo o que o administrador cadastra fica guardado **somente no navegador do computador onde foi cadastrado**. Quem visita o site de outro aparelho vê só o conteúdo inicial (os panfletos e vídeos). O login também é só uma demonstração: não protege dados de verdade.
+Tudo fica salvo no Firebase (projeto `jardim-encantado-ab7ca`):
+- Firestore: textos e listas. `site/...` é público, `private/...` (turmas e alunos) só o administrador lê.
+- Storage: fotos e vídeos (pasta `media/`), até 100 MB por vídeo.
 
-Por isso, ainda não cadastre os dados reais dos alunos. Use para testar e aprovar o visual e o funcionamento.
+Enquanto o administrador não salvar nada, o site mostra o conteúdo inicial (panfletos e vídeos da pasta `img/` e `videos/`).
 
-**Próximo passo sugerido (versão 2):** ligar o site ao Firebase (ou outro serviço) para salvar tudo na internet, com login seguro do administrador e os dados dos alunos protegidos.
+Antes de usar, configure as regras de segurança: veja **REGRAS-FIREBASE.md**.
 
 ## Arquivos
 
 - `index.html`: a página
 - `css/style.css`: cores e visual
-- `js/db.js`: onde os dados são salvos (é este arquivo que muda na versão com servidor)
+- `js/firebase-config.js`: qual projeto do Firebase o site usa
+- `js/db.js`: leitura e gravação no Firebase
+- `js/vendor/`: bibliotecas do Firebase (versão 10.12.2)
 - `js/site.js`: parte pública (carrossel, galeria, agenda, equipe, pacotes)
 - `js/admin.js`: painel do administrador
 - `img/` e `videos/`: panfletos e vídeos de divulgação
