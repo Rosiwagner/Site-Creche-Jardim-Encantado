@@ -28,6 +28,8 @@
     'Reunião de pais': ['#1f6b3a', '#e3f3df'],
     'Passeio': ['#2a9d8f', '#dcf3f0'],
     'Matrículas': ['#1f6b3a', '#e3f3df'],
+    'Feriado': ['#5d5a4a', '#efebdf'],
+    'Ensaio fotográfico': ['#d1418f', '#fbe1f0'],
     'Outro': ['#5d5a4a', '#efebdf']
   };
   const typeColor = (t) => EVENT_TYPES[t] || EVENT_TYPES['Outro'];
@@ -225,59 +227,73 @@
     $$('.thumb', body).forEach((t) => t.addEventListener('click', () => openLightbox(a.items, +t.dataset.i)));
   }
 
-  /* ---------- Agenda ---------- */
+  /* ---------- Agenda (calendário no estilo do panfleto) ---------- */
+  const PASTEL = [['#fde68a', '#7a5b00'], ['#fbc8d4', '#9b1d47'], ['#c8eea0', '#2f6b12'], ['#bfdcf5', '#174f80'], ['#dcc8f5', '#5a2a8f'], ['#ffd2a8', '#8a4300']];
+  const TYPE_ICON = {
+    'Formatura': '🎓', 'Natal': '🎄', 'Dia das Mães': '💐', 'Dia dos Pais': '👔', 'Dia das Crianças': '🎈',
+    'Páscoa': '🐰', 'Festa Junina': '🌽', 'Aniversário': '🎂', 'Reunião de pais': '👪', 'Passeio': '🚌',
+    'Matrículas': '📝', 'Feriado': '🕊️', 'Ensaio fotográfico': '📷', 'Outro': '⭐'
+  };
+  const iconFor = (t) => TYPE_ICON[t] || '⭐';
   let calMonth = new Date(); calMonth.setDate(1);
-  let selDay = null;
-  async function renderCalendar() {
-    const events = await db.get('events', []);
-    const y = calMonth.getFullYear(), m = calMonth.getMonth();
-    const first = new Date(y, m, 1).getDay();
-    const days = new Date(y, m + 1, 0).getDate();
-    const prevDays = new Date(y, m, 0).getDate();
-    const byDay = new Set(events.map((e) => e.date));
-    const today = todayISO();
-    let cells = '';
-    for (let i = 0; i < first; i++) cells += `<span class="cal-day out" aria-hidden="true">${prevDays - first + i + 1}</span>`;
-    for (let d = 1; d <= days; d++) {
-      const iso = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-      const cls = ['cal-day', byDay.has(iso) ? 'has' : '', iso === today ? 'today' : '', iso === selDay ? 'sel' : ''].join(' ');
-      cells += `<button class="${cls}" data-d="${iso}" type="button" aria-label="${d} de ${MONTHS[m]}${byDay.has(iso) ? ', tem evento' : ''}">${d}</button>`;
-    }
-    const total = first + days, tail = (7 - (total % 7)) % 7;
-    for (let i = 1; i <= tail; i++) cells += `<span class="cal-day out" aria-hidden="true">${i}</span>`;
-    $('#calendar').innerHTML = `
-      <div class="cal-head"><button id="calPrev" aria-label="Mês anterior" type="button">‹</button>
-      <h3>${MONTHS[m].replace(/^./, (c) => c.toUpperCase())} de ${y}</h3><button id="calNext" aria-label="Próximo mês" type="button">›</button></div>
-      <div class="cal-grid">${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'].map((d) => `<span class="dow">${d}</span>`).join('')}${cells}</div>`;
-    $('#calPrev').addEventListener('click', () => { calMonth.setMonth(calMonth.getMonth() - 1); selDay = null; renderAgenda(); });
-    $('#calNext').addEventListener('click', () => { calMonth.setMonth(calMonth.getMonth() + 1); selDay = null; renderAgenda(); });
-    $$('.cal-day[data-d]').forEach((b) => b.addEventListener('click', () => { selDay = selDay === b.dataset.d ? null : b.dataset.d; renderAgenda(); }));
-  }
-  async function renderEventList() {
+  let openEventId = null;
+
+  async function renderAgenda() {
     const events = (await db.get('events', [])).slice().sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
     const albums = await db.get('albums', []);
-    let list, title;
-    if (selDay) { list = events.filter((e) => e.date === selDay); title = 'Eventos em ' + fmtDate(selDay); }
-    else {
-      const y = calMonth.getFullYear(), m = calMonth.getMonth();
-      const monthList = events.filter((e) => { const d = parseDate(e.date); return d.getFullYear() === y && d.getMonth() === m; });
-      if (monthList.length) { list = monthList; title = 'Eventos de ' + MONTHS[m]; }
-      else { list = events.filter((e) => e.date >= todayISO()).slice(0, 6); title = 'Próximos eventos'; }
+    const y = calMonth.getFullYear(), m = calMonth.getMonth();
+    const prefix = y + '-' + String(m + 1).padStart(2, '0');
+    const monthEvents = events.filter((e) => e.date && e.date.startsWith(prefix));
+    const dayColor = {};
+    monthEvents.forEach((e) => { const d = Number(e.date.slice(8, 10)); if (!(d in dayColor)) dayColor[d] = PASTEL[Object.keys(dayColor).length % PASTEL.length]; });
+
+    $('#calTitle').textContent = MONTHS[m].replace(/^./, (c) => c.toUpperCase()) + '/' + y;
+    const first = new Date(y, m, 1).getDay();
+    const days = new Date(y, m + 1, 0).getDate();
+    const today = todayISO();
+    const DOW = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+    let cells = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => `<span class="ch" title="${DOW[i]}">${d}</span>`).join('');
+    for (let i = 0; i < first; i++) cells += '<span class="cd blank"></span>';
+    for (let d = 1; d <= days; d++) {
+      const iso = prefix + '-' + String(d).padStart(2, '0');
+      const c = dayColor[d];
+      const cls = 'cd' + (c ? ' ev' : '') + (iso === today ? ' today' : '');
+      cells += c
+        ? `<button type="button" class="${cls}" data-d="${d}" style="--pc:${c[0]};--pt:${c[1]}" aria-label="${d} de ${MONTHS[m]}, ver evento"><b>${d}</b></button>`
+        : `<span class="${cls}"><b>${d}</b></span>`;
     }
-    $('#dayTitle').textContent = title;
-    $('#eventList').innerHTML = list.length ? list.map((e) => {
-      const d = parseDate(e.date); const [c, cs] = typeColor(e.type);
+    const tail = (7 - ((first + days) % 7)) % 7;
+    for (let i = 0; i < tail; i++) cells += '<span class="cd blank"></span>';
+    $('#calendar').innerHTML = cells;
+
+    $('#eventList').innerHTML = monthEvents.length ? monthEvents.map((e) => {
+      const d = Number(e.date.slice(8, 10)); const c = dayColor[d];
       const album = e.albumId && albums.find((a) => a.id === e.albumId);
-      return `<li class="event" style="--ec:${c};--ec-soft:${cs}">
-        <div class="date"><b>${d.getDate()}</b><span>${MONTHS[d.getMonth()].slice(0, 3)}</span></div>
-        <div><h4>${esc(e.title)}</h4>
-        <p><span class="tag">${esc(e.type || 'Evento')}</span>${fmtDate(e.date)}${e.time ? ' às ' + esc(e.time) : ''}</p>
-        ${e.description ? `<p>${esc(e.description)}</p>` : ''}
-        ${album ? `<p><button class="link" data-album="${album.id}" type="button">Ver fotos do evento</button></p>` : ''}</div></li>`;
-    }).join('') : '<li class="empty">Nenhum evento neste período.</li>';
+      const open = openEventId === e.id;
+      return `<li class="lg${open ? ' open' : ''}" data-day="${d}">
+        <button type="button" class="lg-row" data-id="${e.id}" aria-expanded="${open}">
+          <span class="lg-day" style="--pc:${c[0]};--pt:${c[1]}">${String(d).padStart(2, '0')}</span>
+          <span class="lg-title">${esc(e.title)}</span>
+          <span class="lg-ic" aria-hidden="true">${iconFor(e.type)}</span>
+        </button>
+        <div class="lg-more" ${open ? '' : 'hidden'}>
+          <p><strong>${esc(e.type || 'Evento')}</strong> · ${fmtDate(e.date)}${e.time ? ' às ' + esc(e.time) : ''}</p>
+          ${e.description ? `<p>${esc(e.description)}</p>` : ''}
+          ${album ? `<p><button class="link" data-album="${album.id}" type="button">Ver fotos do evento</button></p>` : ''}
+        </div></li>`;
+    }).join('') : '<li class="lg-empty">Nenhum evento neste mês. Use as setas para ver outros meses.</li>';
+
+    $$('#eventList .lg-row').forEach((b) => b.addEventListener('click', () => { openEventId = openEventId === b.dataset.id ? null : b.dataset.id; renderAgenda(); }));
     $$('#eventList [data-album]').forEach((b) => b.addEventListener('click', () => openAlbum(b.dataset.album)));
+    $$('#calendar .cd.ev').forEach((b) => b.addEventListener('click', () => {
+      const ev = monthEvents.find((e) => Number(e.date.slice(8, 10)) === Number(b.dataset.d));
+      if (!ev) return;
+      openEventId = ev.id;
+      renderAgenda().then(() => { const li = $(`#eventList .lg[data-day="${b.dataset.d}"]`); if (li) li.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
+    }));
   }
-  async function renderAgenda() { await renderCalendar(); await renderEventList(); }
+  $('#calPrev').addEventListener('click', () => { calMonth.setMonth(calMonth.getMonth() - 1); openEventId = null; renderAgenda(); });
+  $('#calNext').addEventListener('click', () => { calMonth.setMonth(calMonth.getMonth() + 1); openEventId = null; renderAgenda(); });
 
   /* ---------- Equipe ---------- */
   async function renderStaff() {

@@ -181,11 +181,20 @@
     <div class="wrap">
       <h2 class="sign">Agenda de eventos</h2>
       <p class="section-sub">Formaturas, Natal, Dia das Mães, Dia dos Pais, Dia das Crianças e muito mais.</p>
-      <div class="agenda">
-        <div class="calendar" id="calendar"></div>
-        <div class="upcoming">
-          <h3 id="dayTitle">Próximos eventos</h3>
-          <ul class="event-list" id="eventList"></ul>
+      <div class="calboard">
+        <div class="calboard-side" aria-hidden="true">
+          <img class="cal-logo" src="img/logo.jpg" alt="">
+          <img class="cal-fada" src="img/fada-calendario.jpg" alt="">
+        </div>
+        <div class="calboard-main">
+          <div class="cal-plaque">Calendário</div>
+          <div class="cal-ribbon">
+            <button type="button" id="calPrev" aria-label="Mês anterior">‹</button>
+            <h3 id="calTitle">Mês</h3>
+            <button type="button" id="calNext" aria-label="Próximo mês">›</button>
+          </div>
+          <div class="cal-table" id="calendar"></div>
+          <ul class="cal-legend" id="eventList"></ul>
         </div>
       </div>
     </div>
