@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&family=Caveat:wght@600;700&display=swap">
-<link rel="stylesheet" href="css/style.css?v=20261125">
+<link rel="stylesheet" href="css/style.css?v=20261125b">
 <!--HEAD-END-->
 </head>
 <body>
@@ -32,6 +32,7 @@
       <a href="#agenda">Agenda</a>
       <a href="#equipe">Equipe</a>
       <a href="#contato">Contato</a>
+      <a class="nav-pm" href="#pre-matricula">Pré-Matrícula 2027</a>
       <button class="btn-admin" id="btnAdmin" type="button">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 0 1 6 0v3H9z"/></svg>
         <span id="btnAdminLabel">Administrador</span>
@@ -51,6 +52,19 @@
       <div class="car-empty" id="carEmpty" hidden>
         <p>As fotos do carrossel aparecem aqui. Entre como administrador para adicionar até 30 fotos.</p>
       </div>
+    </div>
+  </section>
+
+  <!-- CHAMADA PRÉ-MATRÍCULA -->
+  <section class="pm-banner" aria-label="Pré-matrícula 2027">
+    <div class="wrap pm-banner-inner">
+      <img class="pm-kid" src="img/pm-menino.jpg" alt="Menino da Jardim Encantado lendo um livro" width="360" height="585">
+      <div class="pm-banner-text">
+        <p class="pm-tag">Vagas abertas</p>
+        <h2>Pré-Matrícula 2027</h2>
+        <p>Garanta a vaga do seu pequeno! Preencha um formulário rapidinho e falamos com você pelo WhatsApp.</p>
+      </div>
+      <a class="btn pm-cta" href="#pre-matricula">Fazer pré-matrícula <span aria-hidden="true">→</span></a>
     </div>
   </section>
 
@@ -202,6 +216,33 @@
   </section>
 
   <!-- CONTATO -->
+  <!-- FORMULÁRIO PRÉ-MATRÍCULA -->
+  <section class="pm-section" id="pre-matricula">
+    <div class="wrap">
+      <h2 class="pm-title">Venha nos conhecer!</h2>
+      <p class="pm-sub">Preencha o formulário e entraremos em contato.</p>
+      <div class="pm-card">
+        <img class="pm-girl" src="img/pm-menina.jpg" alt="Menina da Jardim Encantado sorrindo" width="350" height="578" loading="lazy">
+        <form class="pm-form" id="pmForm" novalidate>
+          <h3>Pré-Matrícula 2027</h3>
+          <label class="pm-field"><span class="sr">Nome do responsável</span>
+            <input id="pmResp" name="responsavel" required autocomplete="name" placeholder="* Nome do responsável"></label>
+          <label class="pm-field"><span class="sr">Nome e idade da criança</span>
+            <input id="pmCrianca" name="crianca" required placeholder="* Nome / idade da criança"></label>
+          <label class="pm-field"><span class="sr">WhatsApp de contato</span>
+            <input id="pmWhats" name="whatsapp" required type="tel" inputmode="tel" autocomplete="tel" placeholder="* WhatsApp de contato"></label>
+          <label class="pm-field"><span class="sr">E-mail</span>
+            <input id="pmEmail" name="email" required type="email" autocomplete="email" placeholder="* E-mail"></label>
+          <label class="pm-check"><input type="checkbox" id="pmOk" required>
+            <span>Concordo em fornecer meus dados para receber conteúdos e ofertas por e-mail ou outros meios.</span></label>
+          <p class="pm-err" id="pmErr" role="alert" hidden></p>
+          <button class="btn pm-send" type="submit">Enviar agora mesmo</button>
+          <p class="pm-note">Ao enviar, o WhatsApp abre com a mensagem pronta para a escola. É só tocar em enviar.</p>
+        </form>
+      </div>
+    </div>
+  </section>
+
   <section class="section" id="contato">
     <div class="wrap two-col">
       <div class="contact-card">
@@ -273,10 +314,11 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="js/firebase-config.js?v=20261125"></script>
-<script src="js/db.js?v=20261125"></script>
-<script src="js/site.js?v=20261125"></script>
-<script src="js/admin.js?v=20261125"></script>
+<script src="js/firebase-config.js?v=20261125b"></script>
+<script src="js/db.js?v=20261125b"></script>
+<script src="js/site.js?v=20261125b"></script>
+<script src="js/admin.js?v=20261125b"></script>
+<script src="js/pre-matricula.js?v=20261125b"></script>
 <!--BODY-END-->
 </body>
 </html>
