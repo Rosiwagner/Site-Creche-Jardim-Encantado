@@ -179,21 +179,15 @@
     <div class="wrap">
       <h2 class="sign">Agenda de eventos</h2>
       <p class="section-sub">Formaturas, Natal, Dia das Mães, Dia dos Pais, Dia das Crianças e muito mais.</p>
-      <div class="calboard">
-        <div class="calboard-side">
-          <img class="cal-logo-m" src="img/logo.png" alt="">
-          <img class="cal-fada" src="img/cal-fada.jpg" alt="Fadinha da Jardim Encantado com o logo da escola" width="446" height="1282">
+      <div class="calart" role="group" aria-label="Calendário de eventos">
+        <div class="ca-plaque" aria-hidden="true">Calendário</div>
+        <div class="ca-ribbon">
+          <button type="button" id="calPrev" aria-label="Mês anterior">‹</button>
+          <h3 id="calTitle">Mês</h3>
+          <button type="button" id="calNext" aria-label="Próximo mês">›</button>
         </div>
-        <div class="calboard-main">
-          <div class="cal-plaque">Calendário</div>
-          <div class="cal-ribbon">
-            <button type="button" id="calPrev" aria-label="Mês anterior">‹</button>
-            <h3 id="calTitle">Mês</h3>
-            <button type="button" id="calNext" aria-label="Próximo mês">›</button>
-          </div>
-          <div class="cal-table" id="calendar"></div>
-          <ul class="cal-legend" id="eventList"></ul>
-        </div>
+        <div class="cal-table ca-grid" id="calendar"></div>
+        <ul class="cal-legend ca-list" id="eventList"></ul>
       </div>
     </div>
   </section>
