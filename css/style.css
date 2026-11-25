@@ -45,10 +45,10 @@ button { font: inherit; cursor: pointer; }
 [hidden] { display: none !important; }
 
 .wrap {
-  max-width: 1160px;
+  max-width: 1720px;
   margin: 0 auto;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-left: max(clamp(16px, 2.5vw, 40px), env(safe-area-inset-left, 0px));
+  padding-right: max(clamp(16px, 2.5vw, 40px), env(safe-area-inset-right, 0px));
 }
 
 /* ---------- Topo ---------- */
@@ -63,7 +63,7 @@ body::before {
   box-shadow: 0 2px 10px rgba(0,0,0,.06);
 }
 .topbar-inner {
-  max-width: 1240px; margin: 0 auto;
+  max-width: 1720px; margin: 0 auto;
   padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
   display: flex; align-items: center; gap: 16px;
 }
@@ -120,15 +120,14 @@ body::before {
 }
 
 /* ---------- Carrossel ---------- */
-.hero { background: linear-gradient(180deg, var(--sky), var(--green-soft)); padding-block: 18px 8px; }
+.hero { background: linear-gradient(180deg, var(--sky), var(--green-soft)); padding-block: 0 8px; }
+/* carrossel de ponta a ponta (largura total da página) */
 .carousel {
-  position: relative; max-width: 1160px; margin: 0 auto;
-  margin-inline: max(16px, env(safe-area-inset-left, 0px));
-  aspect-ratio: 16 / 7; max-height: 560px; min-height: 260px;
-  border-radius: 26px; overflow: hidden; background: #cfe9d4;
-  border: 6px solid #fff; box-shadow: var(--shadow);
+  position: relative; width: 100%; margin: 0;
+  aspect-ratio: 16 / 7; max-height: min(720px, 78vh); min-height: 260px;
+  overflow: hidden; background: #cfe9d4;
+  border-bottom: 6px solid #fff; box-shadow: var(--shadow);
 }
-@media (min-width: 1200px) { .carousel { margin-inline: auto; } }
 .carousel-track { position: absolute; inset: 0; }
 .slide { position: absolute; inset: 0; opacity: 0; transition: opacity .7s ease; }
 .slide.on { opacity: 1; }
