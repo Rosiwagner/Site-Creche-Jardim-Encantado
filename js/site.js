@@ -235,6 +235,7 @@
     'Matrículas': '📝', 'Feriado': '🕊️', 'Ensaio fotográfico': '📷', 'Outro': '⭐'
   };
   const iconFor = (t) => TYPE_ICON[t] || '⭐';
+  JE.PASTEL = PASTEL;
   let calMonth = new Date(); calMonth.setDate(1);
   let openEventId = null;
 
@@ -245,7 +246,12 @@
     const prefix = y + '-' + String(m + 1).padStart(2, '0');
     const monthEvents = events.filter((e) => e.date && e.date.startsWith(prefix));
     const dayColor = {};
-    monthEvents.forEach((e) => { const d = Number(e.date.slice(8, 10)); if (!(d in dayColor)) dayColor[d] = PASTEL[Object.keys(dayColor).length % PASTEL.length]; });
+    monthEvents.forEach((e) => {
+      const d = Number(e.date.slice(8, 10));
+      if (d in dayColor) return;
+      const chosen = e.color !== undefined && e.color !== '' && PASTEL[Number(e.color)];
+      dayColor[d] = chosen || PASTEL[Object.keys(dayColor).length % PASTEL.length];
+    });
 
     $('#calTitle').textContent = MONTHS[m].replace(/^./, (c) => c.toUpperCase()) + '/' + y;
     const first = new Date(y, m, 1).getDay();

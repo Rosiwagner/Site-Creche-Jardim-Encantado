@@ -349,17 +349,24 @@
       <div class="row"><div class="field"><label for="evDate">Data</label><input id="evDate" type="date" required value="${esc(e.date)}"></div>
       <div class="field"><label for="evTime">Horário</label><input id="evTime" type="time" value="${esc(e.time)}"></div></div>
       <div class="field"><label for="evDesc">Descrição</label><textarea id="evDesc" placeholder="Local, o que levar, roupa da criança...">${esc(e.description)}</textarea></div>
+      <div class="field"><label>Cor de destaque no calendário</label>
+        <div class="swatches" id="evColor" role="radiogroup" aria-label="Cor de destaque">
+          <button type="button" role="radio" data-c="" class="sw auto${e.color === undefined || e.color === '' ? ' on' : ''}" aria-label="Automática">Auto</button>
+          ${JE.PASTEL.map((c, i) => `<button type="button" role="radio" data-c="${i}" class="sw${String(e.color) === String(i) ? ' on' : ''}" style="background:${c[0]};color:${c[1]}" aria-label="Cor ${i + 1}">${String(new Date().getDate()).padStart(2, '0')}</button>`).join('')}
+        </div></div>
       <div class="field"><label for="evAlbum">Álbum de fotos do evento</label><select id="evAlbum"><option value="">Nenhum</option>
         ${albums.map((a) => `<option value="${a.id}" ${a.id === e.albumId ? 'selected' : ''}>${esc(a.title)}</option>`).join('')}</select>
         <p class="hint">Depois do evento, crie um álbum na aba Álbuns ou pelo botão “Criar álbum” na lista.</p></div>`,
     async () => {
       const list = await db.get('events', []);
-      const data = { title: val('evTitle'), type: val('evType'), date: val('evDate'), time: val('evTime'), description: val('evDesc'), albumId: val('evAlbum') };
+      const sel = document.querySelector('#evColor .sw.on');
+      const data = { title: val('evTitle'), type: val('evType'), date: val('evDate'), time: val('evTime'), description: val('evDesc'), albumId: val('evAlbum'), color: sel ? sel.dataset.c : '' };
       let eid = id;
       if (id) Object.assign(list.find((x) => x.id === id), data); else { eid = db.uid('e'); list.push(Object.assign({ id: eid }, data)); }
       await db.set('events', list);
       if (data.albumId) { const als = await db.get('albums', []); const a = als.find((x) => x.id === data.albumId); if (a) { a.eventId = eid; await db.set('albums', als); } }
     });
+    $$('#evColor .sw').forEach((b) => b.addEventListener('click', () => { $$('#evColor .sw').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', String(x === b)); }); }));
     const typeSel = $('#evType'), title = $('#evTitle');
     typeSel.addEventListener('change', () => { if (!title.value || Object.keys(EVENT_TYPES).includes(title.value)) title.value = typeSel.value === 'Outro' ? '' : typeSel.value; });
   }
