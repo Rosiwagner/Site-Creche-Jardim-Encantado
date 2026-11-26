@@ -155,7 +155,7 @@
       <div class="slide${isVid ? ' is-video' : ''}${i === 0 ? ' on' : ''}" aria-hidden="${i === 0 ? 'false' : 'true'}">
         ${isVid ? (poster ? `<div class="bg" data-bg="${esc(poster)}"></div>` : '<div class="bg bg-dark"></div>') : `<div class="bg" data-bg="${esc(s.src)}"></div>`}
         ${isVid
-          ? `<video data-src="${esc(s.src)}" ${poster ? `poster="${esc(poster)}"` : ''} muted playsinline preload="metadata" aria-label="${esc(s.caption || 'Vídeo ' + (i + 1))}"></video>
+          ? `<video data-src="${esc(playableVideo(s.src))}" ${poster ? `poster="${esc(poster)}"` : ''} muted playsinline preload="metadata" aria-label="${esc(s.caption || 'Vídeo ' + (i + 1))}"></video>
              <button type="button" class="vid-sound" aria-label="Ligar o som" aria-pressed="false">🔇</button>`
           : `<img data-src="${esc(s.src)}" alt="${esc(s.caption || 'Foto ' + (i + 1))}">`}
         ${s.caption ? `<p class="cap">${esc(s.caption)}</p>` : ''}
@@ -168,7 +168,7 @@
     await Promise.all($$('[data-bg]', track).map(async (el) => { el.style.backgroundImage = `url("${await db.url(el.dataset.bg)}")`; }));
     $$('button', dots).forEach((b) => b.addEventListener('click', () => { goSlide(+b.dataset.i); restartCar(); }));
     $$('video', track).forEach((v) => {
-      v.addEventListener('ended', () => { if (carCount > 1) { goSlide(carIdx + 1); restartCar(); } else { v.currentTime = 0; v.play().catch(() => {}); } });
+      v.addEventListener('ended', () => { if (v.closest('.slide') !== $$('#carouselTrack .slide')[carIdx]) return; if (carCount > 1) { goSlide(carIdx + 1); restartCar(); } else { v.currentTime = 0; v.play().catch(() => {}); } });
       const snd = v.parentElement.querySelector('.vid-sound');
       snd.addEventListener('click', () => {
         v.muted = !v.muted; snd.textContent = v.muted ? '🔇' : '🔊';
@@ -176,6 +176,10 @@
       });
     });
     carIdx = 0; goSlide(0); restartCar();
+  }
+  /* Vídeos do iPhone (.mov) e outros formatos não tocam em todo navegador: o Cloudinary entrega em MP4. */
+  function playableVideo(src) {
+    return /res\.cloudinary\.com\/.+\/video\/upload\//.test(src || '') && !/\.(mp4|webm)(\?.*)?$/i.test(src) ? src.replace(/\.[a-z0-9]+(\?.*)?$/i, '.mp4') : src;
   }
   /* Capa do vídeo gerada pelo Cloudinary (primeiro quadro em JPG). */
   function videoPoster(src) {
@@ -198,12 +202,22 @@
     if (carCount < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const cur = $$('#carouselTrack .slide')[carIdx];
     const v = cur && $('video', cur);
-    if (v && !v.error) {
-      // segurança: se o vídeo não tocar (sem internet, bloqueado), segue depois de 12 s
-      carTimer = setTimeout(() => { if (v.paused) { goSlide(carIdx + 1); restartCar(); } }, 12000);
+    const next = () => { goSlide(carIdx + 1); restartCar(); };
+    if (v) {
+      // o vídeo vai até o fim; se ele travar, der erro ou o navegador pausar (aba escondida,
+      // internet lenta), o carrossel segue depois de 5 s parado, para nunca ficar preso
+      let last = -1, still = 0;
+      const tick = () => {
+        if (v.ended || v.error) return next();
+        if (v.currentTime === last) still++; else { still = 0; last = v.currentTime; }
+        if (still >= 5) return next();
+        if (v.paused) v.play().catch(() => {});
+        carTimer = setTimeout(tick, 1000);
+      };
+      carTimer = setTimeout(tick, 1000);
       return;
     }
-    carTimer = setTimeout(() => { goSlide(carIdx + 1); restartCar(); }, 5000);
+    carTimer = setTimeout(next, 5000);
   }
   $('#carPrev').addEventListener('click', () => { goSlide(carIdx - 1); restartCar(); });
   $('#carNext').addEventListener('click', () => { goSlide(carIdx + 1); restartCar(); });
