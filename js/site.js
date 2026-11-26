@@ -199,7 +199,7 @@
   /* Fotos trocam a cada 5 s; um vídeo passa até o fim e só então vai para o próximo. */
   function restartCar() {
     clearTimeout(carTimer);
-    if (carCount < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (carCount < 2) return; // troca sempre, mesmo com "animações" desligadas no Windows (a transição é que fica sem efeito)
     const cur = $$('#carouselTrack .slide')[carIdx];
     const v = cur && $('video', cur);
     const next = () => { goSlide(carIdx + 1); restartCar(); };
