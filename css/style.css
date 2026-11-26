@@ -132,7 +132,14 @@ body::before {
 .slide { position: absolute; inset: 0; opacity: 0; transition: opacity .7s ease; }
 .slide.on { opacity: 1; }
 .slide .bg { position: absolute; inset: -20px; background-size: cover; background-position: center; filter: blur(18px) saturate(1.2); opacity: .85; }
-.slide img { position: relative; width: 100%; height: 100%; object-fit: contain; }
+.slide img, .slide video { position: relative; width: 100%; height: 100%; object-fit: contain; display: block; }
+.slide .bg-dark { background: linear-gradient(135deg, #1f6b3a, #2f8f4e); filter: none; opacity: 1; }
+.vid-sound {
+  position: absolute; z-index: 3; right: 16px; bottom: 16px; width: 46px; height: 46px; border-radius: 50%;
+  border: 3px solid #fff; background: rgba(31, 107, 58, .85); color: #fff; font-size: 1.25rem; line-height: 1;
+  display: grid; place-items: center; box-shadow: 0 4px 12px rgba(0,0,0,.25);
+}
+.slide:not(.on) .vid-sound { visibility: hidden; }
 .slide .cap {
   position: absolute; left: 50%; bottom: 44px; transform: translateX(-50%);
   background: rgba(255, 253, 246, .92); color: var(--green); font-family: var(--font-display); font-weight: 600;
@@ -393,7 +400,7 @@ body::before {
 .slides-admin { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
 .slide-card { background: #fff; border: 2px solid var(--line); border-radius: 14px; overflow: hidden; display: grid; }
 .slide-card .im { aspect-ratio: 4 / 3; background: var(--green-soft); position: relative; }
-.slide-card .im img { width: 100%; height: 100%; object-fit: cover; }
+.slide-card .im img, .slide-card .im video { width: 100%; height: 100%; object-fit: cover; display: block; }
 .slide-card .im .n { position: absolute; top: 6px; left: 6px; background: var(--green); color: #fff; font-weight: 800; border-radius: 999px; padding: 0 9px; font-size: .85rem; }
 .slide-card .bar { display: flex; gap: 4px; padding: 6px; flex-wrap: wrap; }
 .slide-card .bar button { flex: 1; border: 2px solid var(--line); background: #fff; border-radius: 8px; padding: 4px; font-weight: 700; color: var(--green); min-width: 34px; }

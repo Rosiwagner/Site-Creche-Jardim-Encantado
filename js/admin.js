@@ -149,30 +149,40 @@
     const slides = await db.get('slides', []);
     const full = slides.length >= MAX_SLIDES;
     p.innerHTML = `
-      <div class="panel-head"><h3>Fotos do carrossel</h3><span class="counter">${slides.length} de ${MAX_SLIDES}</span>
-        <button class="btn btn-pink" id="slAdd" type="button" ${full ? 'disabled' : ''}>Adicionar fotos</button></div>
-      <p class="hint">Estas fotos passam no topo do site. Use as setas para mudar a ordem, “Trocar” para substituir uma foto e escreva uma legenda se quiser.${full ? ' <strong>O limite de 30 fotos foi atingido.</strong>' : ''}</p>
+      <div class="panel-head"><h3>Fotos e vídeos do carrossel</h3><span class="counter">${slides.length} de ${MAX_SLIDES}</span>
+        <button class="btn btn-pink" id="slAdd" type="button" ${full ? 'disabled' : ''}>Adicionar fotos ou vídeos</button></div>
+      <p class="hint">Estas fotos e vídeos passam no topo do site. Os vídeos tocam sem som (o visitante pode ligar o som) e, quando terminam, o carrossel passa para o próximo. Use vídeos curtos, de até 100 MB. Use as setas para mudar a ordem, “Trocar” para substituir e escreva uma legenda se quiser.${full ? ' <strong>O limite de 30 itens foi atingido.</strong>' : ''}</p>
       <div class="slides-admin">${slides.map((s, i) => `
         <div class="slide-card" data-id="${s.id}">
-          <div class="im"><img data-src="${esc(s.src)}" alt=""><span class="n">${i + 1}</span></div>
-          <input class="capin" value="${esc(s.caption || '')}" placeholder="Legenda (opcional)" aria-label="Legenda da foto ${i + 1}" data-cap>
+          <div class="im">${s.type === 'video' ? `<video data-src="${esc(s.src)}" muted preload="metadata"></video><span class="play-badge"></span>` : `<img data-src="${esc(s.src)}" alt="">`}<span class="n">${i + 1}</span></div>
+          <input class="capin" value="${esc(s.caption || '')}" placeholder="Legenda (opcional)" aria-label="Legenda do item ${i + 1}" data-cap>
           <div class="bar">
             <button type="button" data-mv="-1" aria-label="Mover para a esquerda" ${i === 0 ? 'disabled' : ''}>←</button>
             <button type="button" data-mv="1" aria-label="Mover para a direita" ${i === slides.length - 1 ? 'disabled' : ''}>→</button>
             <button type="button" data-swap>Trocar</button>
             <button type="button" class="del" data-del>Excluir</button>
-          </div></div>`).join('') || '<p class="empty">Nenhuma foto no carrossel ainda.</p>'}</div>`;
+          </div></div>`).join('') || '<p class="empty">Nenhuma foto ou vídeo no carrossel ainda.</p>'}</div>`;
 
     $('#slAdd', p).addEventListener('click', async () => {
-      const files = await pickFiles('image/*', true);
-      if (!files.length) return;
+      const picked = await pickFiles('image/*,video/*', true);
+      if (!picked.length) return;
+      const big = picked.filter((f) => f.type.startsWith('video/') && f.size > 100 * 1024 * 1024);
+      const files = picked.filter((f) => !big.includes(f));
       const list = await db.get('slides', []);
       const room = MAX_SLIDES - list.length;
       const use = files.slice(0, room);
-      for (const f of use) { const { src } = await db.saveUpload(f, 1800); list.push({ id: db.uid('s'), src, caption: '' }); }
+      let n = 0;
+      for (const f of use) {
+        n++;
+        const r = await db.saveUpload(f, 1800, (pct) => toast(`Enviando ${n} de ${use.length}... ${Math.round(pct * 100)}%`));
+        list.push({ id: db.uid('s'), src: r.src, type: r.type, caption: '' });
+      }
       await db.set('slides', list);
       await refresh();
-      toast(files.length > room ? `Adicionei ${use.length} foto(s). O carrossel aceita no máximo 30.` : `${use.length} foto(s) adicionada(s).`, files.length > room);
+      const notes = [];
+      if (files.length > room) notes.push('O carrossel aceita no máximo 30.');
+      if (big.length) notes.push(`${big.length} vídeo(s) com mais de 100 MB ficaram de fora.`);
+      toast(`${use.length} item(ns) adicionado(s). ${notes.join(' ')}`.trim(), notes.length > 0);
     });
     $$('.slide-card', p).forEach((card) => {
       const id = card.dataset.id;
@@ -183,15 +193,16 @@
         refresh();
       }));
       $('[data-swap]', card).addEventListener('click', async () => {
-        const [f] = await pickFiles('image/*'); if (!f) return;
-        const { src } = await db.saveUpload(f, 1800);
-        await mutate(async (l, i) => { await db.delMedia(l[i].src); l[i].src = src; });
-        refresh(); toast('Foto trocada.');
+        const [f] = await pickFiles('image/*,video/*'); if (!f) return;
+        if (f.type.startsWith('video/') && f.size > 100 * 1024 * 1024) { toast('Esse vídeo tem mais de 100 MB. Escolha um mais curto.', true); return; }
+        const r = await db.saveUpload(f, 1800, (pct) => toast(`Enviando... ${Math.round(pct * 100)}%`));
+        await mutate(async (l, i) => { await db.delMedia(l[i].src); l[i].src = r.src; l[i].type = r.type; });
+        refresh(); toast('Item trocado.');
       });
       $('[data-del]', card).addEventListener('click', async () => {
-        if (!(await confirmBox('Excluir esta foto do carrossel?'))) return;
+        if (!(await confirmBox('Excluir este item do carrossel?'))) return;
         await mutate(async (l, i) => { await db.delMedia(l[i].src); l.splice(i, 1); });
-        refresh(); toast('Foto excluída.');
+        refresh(); toast('Item excluído.');
       });
     });
   }

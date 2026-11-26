@@ -148,29 +148,62 @@
     const slides = await db.get('slides', []);
     carCount = slides.length;
     const track = $('#carouselTrack'), dots = $('#carDots');
-    track.innerHTML = slides.map((s, i) => `
-      <div class="slide${i === 0 ? ' on' : ''}" aria-hidden="${i === 0 ? 'false' : 'true'}">
-        <div class="bg" data-bg="${esc(s.src)}"></div>
-        <img data-src="${esc(s.src)}" alt="${esc(s.caption || 'Foto ' + (i + 1))}">
+    track.innerHTML = slides.map((s, i) => {
+      const isVid = s.type === 'video';
+      const poster = isVid ? videoPoster(s.src) : '';
+      return `
+      <div class="slide${isVid ? ' is-video' : ''}${i === 0 ? ' on' : ''}" aria-hidden="${i === 0 ? 'false' : 'true'}">
+        ${isVid ? (poster ? `<div class="bg" data-bg="${esc(poster)}"></div>` : '<div class="bg bg-dark"></div>') : `<div class="bg" data-bg="${esc(s.src)}"></div>`}
+        ${isVid
+          ? `<video data-src="${esc(s.src)}" ${poster ? `poster="${esc(poster)}"` : ''} muted playsinline preload="metadata" aria-label="${esc(s.caption || 'Vídeo ' + (i + 1))}"></video>
+             <button type="button" class="vid-sound" aria-label="Ligar o som" aria-pressed="false">🔇</button>`
+          : `<img data-src="${esc(s.src)}" alt="${esc(s.caption || 'Foto ' + (i + 1))}">`}
         ${s.caption ? `<p class="cap">${esc(s.caption)}</p>` : ''}
-      </div>`).join('');
-    dots.innerHTML = slides.map((_, i) => `<button role="tab" aria-label="Foto ${i + 1}" class="${i === 0 ? 'on' : ''}" data-i="${i}"></button>`).join('');
+      </div>`;
+    }).join('');
+    dots.innerHTML = slides.map((s, i) => `<button role="tab" aria-label="${s.type === 'video' ? 'Vídeo' : 'Foto'} ${i + 1}" class="${i === 0 ? 'on' : ''}" data-i="${i}"></button>`).join('');
     $('#carEmpty').hidden = slides.length > 0;
     $('#carPrev').hidden = $('#carNext').hidden = slides.length < 2;
     await db.hydrate(track);
     await Promise.all($$('[data-bg]', track).map(async (el) => { el.style.backgroundImage = `url("${await db.url(el.dataset.bg)}")`; }));
     $$('button', dots).forEach((b) => b.addEventListener('click', () => { goSlide(+b.dataset.i); restartCar(); }));
-    carIdx = 0; restartCar();
+    $$('video', track).forEach((v) => {
+      v.addEventListener('ended', () => { if (carCount > 1) { goSlide(carIdx + 1); restartCar(); } else { v.currentTime = 0; v.play().catch(() => {}); } });
+      const snd = v.parentElement.querySelector('.vid-sound');
+      snd.addEventListener('click', () => {
+        v.muted = !v.muted; snd.textContent = v.muted ? '🔇' : '🔊';
+        snd.setAttribute('aria-pressed', String(!v.muted)); snd.setAttribute('aria-label', v.muted ? 'Ligar o som' : 'Desligar o som');
+      });
+    });
+    carIdx = 0; goSlide(0); restartCar();
+  }
+  /* Capa do vídeo gerada pelo Cloudinary (primeiro quadro em JPG). */
+  function videoPoster(src) {
+    return /res\.cloudinary\.com\/.+\/video\/upload\//.test(src || '') ? src.replace('/video/upload/', '/video/upload/so_0/').replace(/\.[a-z0-9]+(\?.*)?$/i, '.jpg') : '';
   }
   function goSlide(i) {
     if (!carCount) return;
     carIdx = (i + carCount) % carCount;
-    $$('#carouselTrack .slide').forEach((s, k) => { s.classList.toggle('on', k === carIdx); s.setAttribute('aria-hidden', k === carIdx ? 'false' : 'true'); });
+    $$('#carouselTrack .slide').forEach((s, k) => {
+      const on = k === carIdx;
+      s.classList.toggle('on', on); s.setAttribute('aria-hidden', on ? 'false' : 'true');
+      const v = $('video', s);
+      if (v) { if (on) { v.currentTime = 0; v.play().catch(() => {}); } else v.pause(); }
+    });
     $$('#carDots button').forEach((d, k) => d.classList.toggle('on', k === carIdx));
   }
+  /* Fotos trocam a cada 5 s; um vídeo passa até o fim e só então vai para o próximo. */
   function restartCar() {
-    clearInterval(carTimer);
-    if (carCount > 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches) carTimer = setInterval(() => goSlide(carIdx + 1), 5000);
+    clearTimeout(carTimer);
+    if (carCount < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const cur = $$('#carouselTrack .slide')[carIdx];
+    const v = cur && $('video', cur);
+    if (v && !v.error) {
+      // segurança: se o vídeo não tocar (sem internet, bloqueado), segue depois de 12 s
+      carTimer = setTimeout(() => { if (v.paused) { goSlide(carIdx + 1); restartCar(); } }, 12000);
+      return;
+    }
+    carTimer = setTimeout(() => { goSlide(carIdx + 1); restartCar(); }, 5000);
   }
   $('#carPrev').addEventListener('click', () => { goSlide(carIdx - 1); restartCar(); });
   $('#carNext').addEventListener('click', () => { goSlide(carIdx + 1); restartCar(); });
