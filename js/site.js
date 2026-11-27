@@ -352,11 +352,28 @@
   async function renderStaff() {
     const staff = await db.get('staff', []);
     const grid = $('#staffGrid');
-    grid.innerHTML = staff.length ? staff.map((p) => `<article class="person">
+    const card = (p, cls) => `<article class="person${cls || ''}">
       <div class="ph">${p.photo ? `<img data-src="${esc(p.photo)}" alt="Foto de ${esc(p.name)}">` : esc(initials(p.name))}</div>
       <h3>${esc(p.name)}</h3><span class="role">${esc(p.role)}</span>
-      ${p.bio ? `<p>${esc(p.bio)}</p>` : ''}</article>`).join('')
-      : '<p class="empty">Em breve você vai conhecer aqui as professoras, auxiliares e toda a equipe da Jardim Encantado.</p>';
+      ${p.bio ? `<p>${esc(p.bio)}</p>` : ''}</article>`;
+    // diretores (função com "diretor"/"diretora") no centro; os demais em volta deles
+    const isDir = (p) => /diret/i.test(p.role || '');
+    const dirs = staff.filter(isDir), others = staff.filter((p) => !isDir(p));
+    grid.className = 'staff';
+    if (!staff.length) {
+      grid.innerHTML = '<p class="empty">Em breve você vai conhecer aqui as professoras, auxiliares e toda a equipe da Jardim Encantado.</p>';
+    } else if (!dirs.length) {
+      grid.innerHTML = staff.map((p) => card(p)).join('');
+    } else {
+      const n = others.length;
+      grid.className = 'staff staff-orbit' + (n > 10 ? ' many' : '');
+      grid.style.setProperty('--ry', Math.max(260, 150 + n * 14) + 'px');
+      grid.innerHTML = `<div class="orbit-center">${dirs.map((p) => card(p, ' boss')).join('')}</div>` +
+        `<div class="orbit-ring">${others.map((p, i) => {
+          const a = -Math.PI / 2 + (i * 2 * Math.PI) / n; // começa em cima, no sentido do relógio
+          return card(p, ' orb" style="--x:' + Math.cos(a).toFixed(4) + ';--y:' + Math.sin(a).toFixed(4)).replace('class="person orb" style="', 'class="person orb" style="');
+        }).join('')}</div>`;
+    }
     db.hydrate(grid);
   }
 

@@ -636,3 +636,45 @@ table.pay input { font: inherit; width: 110px; padding: 4px 6px; border: 2px sol
   .social-top a { width: 34px; height: 34px; }
   .social-top svg { width: 19px; height: 19px; }
 }
+
+/* ---------- Equipe: diretores no centro, equipe em volta ---------- */
+.staff-orbit { display: block; position: relative; }
+.orbit-center { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; }
+.person.boss { width: 230px; border: 3px solid var(--yellow); box-shadow: 0 10px 26px rgba(62, 47, 16, .18); position: relative; }
+.person.boss::before {
+  content: "Direção"; position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  background: var(--yellow); color: #4a3a00; font-weight: 800; font-size: .8rem; padding: 2px 12px; border-radius: 999px;
+  letter-spacing: .04em; text-transform: uppercase; white-space: nowrap;
+}
+.person.boss .ph { width: 156px; height: 156px; border-color: var(--pink); }
+.person.boss h3 { font-size: 1.3rem; }
+.orbit-ring { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 18px; margin-top: 26px; }
+.orbit-ring .person p { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+@media (min-width: 1000px) {
+  .staff-orbit:not(.many) { height: calc(2 * var(--ry) + 280px); }
+  .staff-orbit:not(.many) .orbit-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); flex-wrap: nowrap; z-index: 2; }
+  .staff-orbit:not(.many) .orbit-ring { display: block; margin: 0; position: absolute; inset: 0; }
+  .staff-orbit:not(.many) .orbit-ring::before {
+    content: ""; position: absolute; left: 50%; top: 50%; width: 76%; height: calc(2 * var(--ry));
+    transform: translate(-50%, -50%); border: 3px dashed rgba(31, 107, 58, .25); border-radius: 50%; pointer-events: none;
+  }
+  .staff-orbit:not(.many) .person.orb {
+    position: absolute; width: 170px; padding: 12px 10px;
+    left: calc(50% + var(--x) * 38%); top: calc(50% + var(--y) * var(--ry));
+    transform: translate(-50%, -50%);
+  }
+  .staff-orbit:not(.many) .person.orb .ph { width: 96px; height: 96px; }
+  .staff-orbit:not(.many) .person.orb h3 { font-size: 1.02rem; }
+  .staff-orbit:not(.many) .person.orb .role { font-size: .88rem; }
+  .staff-orbit:not(.many) .person.orb p { font-size: .82rem; -webkit-line-clamp: 2; }
+}
+@media (max-width: 999px) {
+  .orbit-ring { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
+@media (max-width: 520px) {
+  .orbit-ring { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .orbit-ring .person { padding: 12px 8px; }
+  .orbit-ring .person .ph { width: 92px; height: 92px; }
+  .person.boss { width: min(100%, 260px); }
+}

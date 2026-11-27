@@ -385,7 +385,7 @@
   /* =======================================================
      FUNCIONÁRIOS
      ======================================================= */
-  const ROLES = ['Diretora', 'Coordenadora pedagógica', 'Professora', 'Professor', 'Auxiliar de classe', 'Cuidadora', 'Secretária', 'Cozinheira', 'Serviços gerais', 'Porteiro'];
+  const ROLES = ['Diretora', 'Diretor', 'Coordenadora pedagógica', 'Professora', 'Professor', 'Auxiliar de classe', 'Cuidadora', 'Secretária', 'Cozinheira', 'Serviços gerais', 'Porteiro'];
   async function tabStaff(p) {
     const staff = await db.get('staff', []);
     p.innerHTML = `
